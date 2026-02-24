@@ -1,0 +1,173 @@
+import { Stack } from "expo-router";
+import React from "react";
+import {
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { inMemoryMessageStore, useMessages } from "../src/chat/inMemoryMessageStore";
+import { createPollingTransport } from "../src/chat/transport";
+import type { ChatMessage } from "../src/chat/types";
+import { useChatPolling } from "../src/chat/useChatPolling";
+
+export default function Index() {
+  const transport = React.useMemo(() => createPollingTransport(), []);
+  const messages = useMessages();
+  const [draft, setDraft] = React.useState("");
+
+  React.useEffect(() => {
+    inMemoryMessageStore.seedIfEmpty([
+      {
+        id: "seed-1",
+        text: "Welcome! Type a message below.",
+        createdAtMs: Date.now(),
+        direction: "in",
+      },
+    ]);
+  }, []);
+
+  useChatPolling(transport, 1200);
+
+  const data = React.useMemo(() => [...messages].reverse(), [messages]);
+
+  const onSend = React.useCallback(async () => {
+    const text = draft.trim();
+    if (!text) return;
+    setDraft("");
+    await transport.sendMessage(text);
+  }, [draft, transport]);
+
+  const renderItem = React.useCallback(({ item }: { item: ChatMessage }) => {
+    const isOut = item.direction === "out";
+    return (
+      <View style={[styles.row, isOut ? styles.rowOut : styles.rowIn]}>
+        <View style={[styles.bubble, isOut ? styles.bubbleOut : styles.bubbleIn]}>
+          <Text style={[styles.bubbleText, isOut ? styles.bubbleTextOut : styles.bubbleTextIn]}>
+            {item.text}
+          </Text>
+        </View>
+      </View>
+    );
+  }, []);
+
+  const canSend = draft.trim().length > 0;
+
+  return (
+    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <Stack.Screen options={{ title: "Orachat" }} />
+
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+      >
+        <FlatList
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+          data={data}
+          keyExtractor={(m) => m.id}
+          renderItem={renderItem}
+          inverted
+          keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        />
+
+        <View style={styles.composer}>
+          <TextInput
+            value={draft}
+            onChangeText={setDraft}
+            placeholder="Message…"
+            placeholderTextColor="#6B7A90"
+            style={styles.input}
+            multiline
+            returnKeyType="send"
+            onSubmitEditing={() => void onSend()}
+            blurOnSubmit={false}
+          />
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void onSend()}
+            disabled={!canSend}
+            style={({ pressed }) => [
+              styles.send,
+              !canSend && styles.sendDisabled,
+              pressed && canSend && styles.sendPressed,
+            ]}
+          >
+            <Text style={styles.sendText}>Send</Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: "#F5FAFF" },
+  container: { flex: 1, backgroundColor: "#F5FAFF" },
+  list: { flex: 1 },
+  listContent: { paddingHorizontal: 12, paddingVertical: 12 },
+
+  row: { width: "100%", marginVertical: 6, flexDirection: "row" },
+  rowIn: { justifyContent: "flex-start" },
+  rowOut: { justifyContent: "flex-end" },
+
+  bubble: {
+    maxWidth: "84%",
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  bubbleIn: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "rgba(11, 95, 255, 0.18)",
+  },
+  bubbleOut: { backgroundColor: "#0B5FFF" },
+
+  bubbleText: { fontSize: 16, lineHeight: 20 },
+  bubbleTextIn: { color: "#102A43" },
+  bubbleTextOut: { color: "#FFFFFF" },
+
+  composer: {
+    flexDirection: "row",
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(11, 95, 255, 0.12)",
+    backgroundColor: "#FFFFFF",
+  },
+  input: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 120,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "rgba(11, 95, 255, 0.18)",
+    borderRadius: 14,
+    color: "#102A43",
+    backgroundColor: "#F8FBFF",
+  },
+  send: {
+    alignSelf: "flex-end",
+    height: 44,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: "#0B5FFF",
+    justifyContent: "center",
+  },
+  sendPressed: { opacity: 0.9 },
+  sendDisabled: { backgroundColor: "rgba(11, 95, 255, 0.45)" },
+  sendText: { color: "#FFFFFF", fontWeight: "700", fontSize: 16 },
+});
