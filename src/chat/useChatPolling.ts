@@ -18,8 +18,8 @@ export function useChatPolling(transport: ChatTransport, intervalMs: number) {
           lastSeenRef.current = Math.max(lastSeenRef.current, newest);
           inMemoryMessageStore.append(newMessages);
         }
-      } catch {
-        // Ignore errors for now; real transport can surface them later.
+      } catch (err) {
+        if (!cancelled) console.error("[chat] poll failed", err);
       }
     };
 

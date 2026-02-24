@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { inMemoryMessageStore, useMessages } from "../src/chat/inMemoryMessageStore";
+import { useMessages } from "../src/chat/inMemoryMessageStore";
 import { createPollingTransport } from "../src/chat/transport";
 import type { ChatMessage } from "../src/chat/types";
 import { useChatPolling } from "../src/chat/useChatPolling";
@@ -22,17 +22,6 @@ export default function Index() {
   const messages = useMessages();
   const [draft, setDraft] = React.useState("");
 
-  React.useEffect(() => {
-    inMemoryMessageStore.seedIfEmpty([
-      {
-        id: "seed-1",
-        text: "Welcome! Type a message below.",
-        createdAtMs: Date.now(),
-        direction: "in",
-      },
-    ]);
-  }, []);
-
   useChatPolling(transport, 1200);
 
   const data = React.useMemo(() => [...messages].reverse(), [messages]);
@@ -41,7 +30,12 @@ export default function Index() {
     const text = draft.trim();
     if (!text) return;
     setDraft("");
-    await transport.sendMessage(text);
+    try {
+      await transport.sendMessage(text);
+    } catch (err) {
+      console.error("[chat] send failed", err);
+      if (__DEV__) throw err;
+    }
   }, [draft, transport]);
 
   const renderItem = React.useCallback(({ item }: { item: ChatMessage }) => {

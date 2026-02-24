@@ -1,62 +1,129 @@
 import type { ChatMessage, ChatTransport, PollOptions } from "./types";
 import { inMemoryMessageStore } from "./inMemoryMessageStore";
 
-function uid() {
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-type PendingInbound = {
-  message: ChatMessage;
+type OrachatApiMessage = {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  content: string;
+  created_at: string; // ISO datetime
 };
 
+type OrachatSendMessageRequest = {
+  sender_id: string;
+  recipient_id: string;
+  content: string;
+};
+
+export type OrachatTransportConfig = {
+  baseUrl?: string;
+  senderId?: string;
+  recipientId?: string;
+};
+
+function getBaseUrl(baseUrl?: string) {
+  const raw =
+    baseUrl ??
+    // Expo supports EXPO_PUBLIC_ env vars at runtime
+    process.env.EXPO_PUBLIC_ORACHAT_API_URL ??
+    "http://10.0.2.2:8000/";
+  return raw.replace(/\/+$/, "");
+}
+
+function parseCreatedAtMs(iso: string) {
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? ms : Date.now();
+}
+
+async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, {
+    ...init,
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${res.statusText}${text ? `: ${text}` : ""}`);
+  }
+
+  // FastAPI returns JSON for successful routes used here
+  return (await res.json()) as T;
+}
+
 /**
- * Mock transport that demonstrates the shape of a future backend client:
- * - `sendMessage()` would call an API
- * - `poll()` would fetch new messages since a timestamp
+ * Polling transport backed by ORACHAT FastAPI endpoints:
+ * - POST `/messages/send`
+ * - GET `/messages/inbox?user_id=...`
+ * - POST `/messages/ack/{message_id}`
  */
-export function createPollingTransport(): ChatTransport {
-  const inboundQueue: PendingInbound[] = [];
+export function createPollingTransport(config: OrachatTransportConfig = {}): ChatTransport {
+  const baseUrl = getBaseUrl(config.baseUrl);
+  const senderId = config.senderId ?? "bob";
+  const recipientId = config.recipientId ?? "server";
 
   return {
     async sendMessage(text: string) {
-      const now = Date.now();
-      const outgoing: ChatMessage = {
-        id: `out-${uid()}`,
-        text,
-        createdAtMs: now,
-        direction: "out",
+      const body: OrachatSendMessageRequest = {
+        sender_id: senderId,
+        recipient_id: recipientId,
+        content: text,
       };
 
-      inMemoryMessageStore.append([outgoing]);
+      try {
+        console.log("[chat] POST", `${baseUrl}/messages/send`);
+        const created = await fetchJson<OrachatApiMessage>(`${baseUrl}/messages/send`, {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
 
-      // Simulate server-side delivery of an inbound message that will be received via polling.
-      const inbound: ChatMessage = {
-        id: `in-${uid()}`,
-        text: `Echo: ${text}`,
-        createdAtMs: now + 450,
-        direction: "in",
-      };
-      inboundQueue.push({ message: inbound });
+        const outgoing: ChatMessage = {
+          id: created.id,
+          text: created.content,
+          createdAtMs: parseCreatedAtMs(created.created_at),
+          direction: "out",
+        };
+        inMemoryMessageStore.append([outgoing]);
+      } catch (err) {
+        console.error("[chat] send request failed", err);
+        // Fall back to optimistic local append if the backend is unreachable.
+        inMemoryMessageStore.append([
+          { id: `local-${Date.now()}`, text, createdAtMs: Date.now(), direction: "out" },
+        ]);
+        throw err;
+      }
     },
 
     async poll(options?: PollOptions) {
       const since = options?.sinceCreatedAtMs ?? 0;
       const limit = options?.limit ?? 50;
 
-      const ready = inboundQueue
-        .map((x) => x.message)
+      const inbox = await fetchJson<OrachatApiMessage[]>(
+        `${baseUrl}/messages/inbox?user_id=${encodeURIComponent(senderId)}`
+      );
+
+      const received = inbox
+        .map<ChatMessage>((m) => ({
+          id: m.id,
+          text: m.content,
+          createdAtMs: parseCreatedAtMs(m.created_at),
+          direction: "in",
+        }))
         .filter((m) => m.createdAtMs > since)
         .sort((a, b) => a.createdAtMs - b.createdAtMs)
         .slice(0, limit);
 
-      if (ready.length === 0) return [];
+      if (received.length === 0) return [];
 
-      const readyIds = new Set(ready.map((m) => m.id));
-      for (let i = inboundQueue.length - 1; i >= 0; i--) {
-        if (readyIds.has(inboundQueue[i]!.message.id)) inboundQueue.splice(i, 1);
-      }
+      // Ack only messages we're returning so we don't drop anything unintentionally.
+      await Promise.allSettled(
+        received.map((m) => fetch(`${baseUrl}/messages/ack/${encodeURIComponent(m.id)}`, { method: "POST" }))
+      );
 
-      return ready;
+      return received;
     },
   };
 }
