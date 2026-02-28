@@ -1,4 +1,5 @@
-import { Stack } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { Stack, useRouter } from "expo-router";
 import React from "react";
 import {
   FlatList,
@@ -18,6 +19,7 @@ import type { ChatMessage } from "../src/chat/types";
 import { useChatPolling } from "../src/chat/useChatPolling";
 
 export default function Index() {
+  const router = useRouter();
   const transport = React.useMemo(() => createPollingTransport(), []);
   const messages = useMessages();
   const [draft, setDraft] = React.useState("");
@@ -55,7 +57,19 @@ export default function Index() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <Stack.Screen options={{ title: "Orachat" }} />
+      <Stack.Screen
+        options={{
+          title: "Orachat",
+          headerRight: () => (
+            <Pressable
+              onPress={() => router.push({ pathname: "/user-search" })}
+              style={({ pressed }) => [styles.headerBtn, pressed && styles.headerBtnPressed]}
+            >
+              <Ionicons name="add" size={26} color="#FFFFFF" />
+            </Pressable>
+          ),
+        }}
+      />
 
       <KeyboardAvoidingView
         style={styles.container}
@@ -106,6 +120,9 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
+  headerBtn: { padding: 8, marginRight: 4 },
+  headerBtnPressed: { opacity: 0.8 },
+
   safe: { flex: 1, backgroundColor: "#F5FAFF" },
   container: { flex: 1, backgroundColor: "#F5FAFF" },
   list: { flex: 1 },

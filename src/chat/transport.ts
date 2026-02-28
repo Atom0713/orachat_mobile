@@ -1,3 +1,4 @@
+import { getBaseUrl } from "../api/config";
 import type { ChatMessage, ChatTransport, PollOptions } from "./types";
 import { inMemoryMessageStore } from "./inMemoryMessageStore";
 
@@ -20,15 +21,6 @@ export type OrachatTransportConfig = {
   senderId?: string;
   recipientId?: string;
 };
-
-function getBaseUrl(baseUrl?: string) {
-  const raw =
-    baseUrl ??
-    // Expo supports EXPO_PUBLIC_ env vars at runtime
-    process.env.EXPO_PUBLIC_ORACHAT_API_URL ??
-    "http://10.0.2.2:8000/";
-  return raw.replace(/\/+$/, "");
-}
 
 function parseCreatedAtMs(iso: string) {
   const ms = Date.parse(iso);
