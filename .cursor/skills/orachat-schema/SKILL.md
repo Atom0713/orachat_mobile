@@ -14,9 +14,10 @@ description: General Orachat mobile app context (stack, layout, env, UI), messag
 
 | Path | Purpose |
 |------|---------|
-| `app/` | Screens and layout. `_layout.tsx` = root Stack, hydrates message store on mount. `index.tsx` = main chat; `user-search.tsx` = find users. |
+| `app/` | Screens and layout. `_layout.tsx` = root Stack, auth guard (redirect to `/register` when no user), hydrates message store. `index.tsx` = main chat; `register.tsx` = username-only registration; `user-search.tsx` = find users. |
 | `src/chat/` | Chat domain: `types.ts`, `transport.ts`, `inMemoryMessageStore.ts`, `useChatPolling.ts`. |
-| `src/api/` | API helpers: `config.ts` (base URL), `users.ts` (user search). |
+| `src/api/` | API helpers: `config.ts` (base URL), `users.ts` (user search, register). |
+| `src/user/` | User store: `userStore.ts` — `getLocalUser()`, `setLocalUser()` (SQLite `user` table). |
 
 ## Environment
 
@@ -31,9 +32,10 @@ Run examples:
 
 ## Conventions
 
-- One conversation per app: sender/recipient from env; no in-app conversation switcher yet.
+- One conversation per app. **Sender**: after registration, `senderId` comes from local user store (`user.id`); transport is created with `createPollingTransport({ senderId: user.id })`. No env required for sender when registered. Recipient from env or future picker.
 - Messages: in-memory store + SQLite; no WebSockets (polling only).
 - User search: screen only; selecting a user does not yet change recipient (future work).
+- **Registration**: username only; display_name derived from username (before normalize); stored in SQLite and propagated via POST `/users/register` for discoverability. In-app display uses **display_name**.
 ---
 
 # Orachat Schema & Transport Contract
@@ -84,16 +86,17 @@ type OrachatTransportConfig = {
 ```
 
 - `baseUrl`: API root (default: `EXPO_PUBLIC_ORACHAT_API_URL` or `http://10.0.2.2:8000`)
-- `senderId` / `recipientId`: Override env vars `EXPO_PUBLIC_USERNAME` and `EXPO_PUBLIC_RECIPIENT`
+- `senderId` / `recipientId`: When provided (e.g. from local user after registration), used for send/inbox; otherwise fallback to `EXPO_PUBLIC_USERNAME` / `EXPO_PUBLIC_RECIPIENT`
 
 ## API Endpoints
 
 | Method | Path | Purpose |
 |--------|------|---------|
+| POST | `/users/register` | Register user for discoverability. Body: `{ username, display_name? }` (mobile sends normalized username and display_name derived from pre-normalized input). Returns `User` (`id`, `username`, `display_name`, timestamps). Backend stores in memory; 409 if username taken. |
+| GET | `/users/search?q={query}` | Search users by username. Returns `SearchUser[]` |
 | POST | `/messages/send` | Send message. Body: `{ sender_id, recipient_id, content }`. Returns created message with `id`, `content`, `created_at` (ISO) |
 | GET | `/messages/inbox?user_id={id}` | Fetch inbox for user. Returns array of messages |
 | POST | `/messages/ack/{message_id}` | Acknowledge message (delete from inbox) |
-| GET | `/users/search?q={query}` | Search users by username. Returns `SearchUser[]` |
 
 ### OrachatApiMessage (backend shape)
 
@@ -123,11 +126,22 @@ CREATE TABLE messages (
   direction TEXT NOT NULL CHECK (direction IN ('in', 'out'))
 );
 CREATE INDEX messages_created_at_ms ON messages(created_at_ms);
+
+CREATE TABLE user (
+  id TEXT PRIMARY KEY NOT NULL,
+  username TEXT NOT NULL,
+  display_name TEXT
+);
 ```
 
 - **DB**: `orachat.db`, WAL mode
 - **Migrations**: `PRAGMA user_version`; bump `SCHEMA_VERSION` when changing schema
-- **Persistence**: `INSERT OR IGNORE` on append; hydrate on startup
+- **Persistence**: Messages — `INSERT OR IGNORE` on append; hydrate on startup. User — single row; written on registration via `setLocalUser()`.
+
+### User schema and registration flow
+
+- **Table `user`**: One row per app install. `id` = backend UUID (from register response), `username` = normalized (lowercase) for uniqueness, `display_name` = derived from username before normalization, used for in-app display.
+- **Registration flow**: Register screen (username only) → derive `display_name` from username (before normalize), normalize username → POST `/users/register` with both → store returned user in SQLite → redirect to chat. Chat uses stored user’s `id` as `sender_id`.
 
 ### Store API
 

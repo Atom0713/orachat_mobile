@@ -7,7 +7,7 @@ type Listener = () => void;
 const listeners = new Set<Listener>();
 let messages: ChatMessage[] = [];
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const DB_NAME = "orachat.db";
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -40,6 +40,13 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
     `);
     await database.runAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
   }
+  await database.execAsync(`
+    CREATE TABLE IF NOT EXISTS user (
+      id TEXT PRIMARY KEY NOT NULL,
+      username TEXT NOT NULL,
+      display_name TEXT
+    );
+  `);
   db = database;
   return db;
 }
@@ -99,6 +106,11 @@ export const inMemoryMessageStore = {
 /** Call early in app lifecycle so cache is hydrated from DB before first render if possible. */
 export function ensureMessagesHydrated(): Promise<void> {
   return hydrated;
+}
+
+/** Same DB connection used for messages (already migrated). Use for user table queries so schema is guaranteed. */
+export function getSharedDb(): Promise<SQLite.SQLiteDatabase> {
+  return dbReady;
 }
 
 export function useMessages(): ChatMessage[] {

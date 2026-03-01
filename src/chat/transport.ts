@@ -54,8 +54,8 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
  */
 export function createPollingTransport(config: OrachatTransportConfig = {}): ChatTransport {
   const baseUrl = getBaseUrl(config.baseUrl);
-  const senderId = process.env.EXPO_PUBLIC_USERNAME ?? "bob";
-  const recipientId = process.env.EXPO_PUBLIC_RECIPIENT ?? "server";
+  const senderId = config.senderId ?? process.env.EXPO_PUBLIC_USERNAME ?? "bob";
+  const recipientId = config.recipientId ?? process.env.EXPO_PUBLIC_RECIPIENT ?? "server";
 
   return {
     async sendMessage(text: string) {

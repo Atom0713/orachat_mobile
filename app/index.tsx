@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -17,18 +17,38 @@ import { useMessages } from "../src/chat/inMemoryMessageStore";
 import { createPollingTransport } from "../src/chat/transport";
 import type { ChatMessage } from "../src/chat/types";
 import { useChatPolling } from "../src/chat/useChatPolling";
+import { getLocalUser, type LocalUser } from "../src/user/userStore";
 
 export default function Index() {
   const router = useRouter();
-  const transport = React.useMemo(() => createPollingTransport(), []);
+  const [user, setUser] = useState<LocalUser | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const goRegister = () => router.replace("/register" as never);
+    getLocalUser()
+      .then((u) => {
+        if (!u) goRegister();
+        else setUser(u);
+      })
+      .catch(goRegister)
+      .finally(() => setLoading(false));
+  }, [router]);
+
+  const transport = React.useMemo(
+    () => (user ? createPollingTransport({ senderId: user.id }) : null),
+    [user?.id]
+  );
+
   const messages = useMessages();
   const [draft, setDraft] = React.useState("");
 
-  useChatPolling(transport, 1200);
+  useChatPolling(transport ?? { sendMessage: async () => {}, poll: async () => [] }, 1200);
 
   const data = React.useMemo(() => [...messages].reverse(), [messages]);
 
   const onSend = React.useCallback(async () => {
+    if (!transport) return;
     const text = draft.trim();
     if (!text) return;
     setDraft("");
@@ -54,6 +74,8 @@ export default function Index() {
   }, []);
 
   const canSend = draft.trim().length > 0;
+
+  if (loading || !user) return null;
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
