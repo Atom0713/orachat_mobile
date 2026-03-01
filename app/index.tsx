@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   FlatList,
@@ -21,6 +21,10 @@ import { getLocalUser, type LocalUser } from "../src/user/userStore";
 
 export default function Index() {
   const router = useRouter();
+  const { recipientId, recipientDisplayName } = useLocalSearchParams<{
+    recipientId?: string;
+    recipientDisplayName?: string;
+  }>();
   const [user, setUser] = useState<LocalUser | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,16 +40,30 @@ export default function Index() {
   }, [router]);
 
   const transport = React.useMemo(
-    () => (user ? createPollingTransport({ senderId: user.id }) : null),
-    [user?.id]
+    () =>
+      user
+        ? createPollingTransport({
+            senderId: user.id,
+            recipientId: recipientId ?? undefined,
+          })
+        : null,
+    [user?.id, recipientId]
   );
 
   const messages = useMessages();
+  const filteredMessages = React.useMemo(() => {
+    if (!recipientId) return messages;
+    return messages.filter(
+      (m) =>
+        m.direction === "out" ||
+        (m.direction === "in" && m.senderId === recipientId)
+    );
+  }, [messages, recipientId]);
   const [draft, setDraft] = React.useState("");
 
   useChatPolling(transport ?? { sendMessage: async () => {}, poll: async () => [] }, 1200);
 
-  const data = React.useMemo(() => [...messages].reverse(), [messages]);
+  const data = React.useMemo(() => [...filteredMessages].reverse(), [filteredMessages]);
 
   const onSend = React.useCallback(async () => {
     if (!transport) return;

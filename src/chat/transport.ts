@@ -54,7 +54,7 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
  */
 export function createPollingTransport(config: OrachatTransportConfig = {}): ChatTransport {
   const baseUrl = getBaseUrl(config.baseUrl);
-  const senderId = config.senderId ?? process.env.EXPO_PUBLIC_USERNAME ?? "bob";
+  const senderId = config.senderId;
   const recipientId = config.recipientId ?? process.env.EXPO_PUBLIC_RECIPIENT ?? "server";
 
   return {
@@ -92,7 +92,8 @@ export function createPollingTransport(config: OrachatTransportConfig = {}): Cha
     async poll(options?: PollOptions) {
       const since = options?.sinceCreatedAtMs ?? 0;
       const limit = options?.limit ?? 50;
-
+      
+      console.log("[chat] polling", { since, recipientId, senderId });
       const inbox = await fetchJson<OrachatApiMessage[]>(
         `${baseUrl}/messages/inbox?user_id=${encodeURIComponent(senderId)}`
       );
@@ -103,6 +104,7 @@ export function createPollingTransport(config: OrachatTransportConfig = {}): Cha
           text: m.content,
           createdAtMs: parseCreatedAtMs(m.created_at),
           direction: "in",
+          senderId: m.sender_id,
         }))
         .filter((m) => m.createdAtMs > since)
         .sort((a, b) => a.createdAtMs - b.createdAtMs)

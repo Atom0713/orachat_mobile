@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { searchUsers, type SearchUser } from "../src/api/users";
 
 export default function UserSearchScreen() {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchUser[]>([]);
   const [loading, setLoading] = useState(false);
@@ -36,17 +37,35 @@ export default function UserSearchScreen() {
     }
   }, [query]);
 
-  const renderItem = useCallback(({ item }: { item: SearchUser }) => {
-    const displayName = item.display_name ?? item.username ?? item.id;
-    return (
-      <View style={styles.resultRow}>
-        <Text style={styles.resultText}>{displayName}</Text>
-        {item.username && item.username !== displayName && (
-          <Text style={styles.resultSubtext}>@{item.username}</Text>
-        )}
-      </View>
-    );
-  }, []);
+  const onSelectUser = useCallback(
+    (item: SearchUser) => {
+      const recipientDisplayName = item.display_name ?? item.username ?? item.id;
+      router.push({
+        pathname: "/",
+        params: { recipientId: item.id, recipientDisplayName },
+      } as never);
+    },
+    [router]
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: SearchUser }) => {
+      const displayName = item.display_name ?? item.username ?? item.id;
+      return (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => onSelectUser(item)}
+          style={({ pressed }) => [styles.resultRow, pressed && styles.resultRowPressed]}
+        >
+          <Text style={styles.resultText}>{displayName}</Text>
+          {item.username && item.username !== displayName && (
+            <Text style={styles.resultSubtext}>@{item.username}</Text>
+          )}
+        </Pressable>
+      );
+    },
+    [onSelectUser]
+  );
 
   const hasSearched = results.length > 0 || (query.trim().length > 0 && !loading);
 
@@ -181,6 +200,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(11, 95, 255, 0.18)",
   },
+  resultRowPressed: { opacity: 0.8 },
   resultText: { color: "#102A43", fontSize: 16, fontWeight: "600" },
   resultSubtext: { color: "#6B7A90", fontSize: 14, marginTop: 2 },
 });

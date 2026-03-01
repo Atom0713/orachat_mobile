@@ -3,6 +3,8 @@ export type ChatMessage = {
   text: string;
   createdAtMs: number;
   direction: "in" | "out";
+  /** Set for incoming messages (sender of the message). */
+  senderId?: string;
 };
 
 export type PollOptions = {

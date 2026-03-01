@@ -7,7 +7,7 @@ type Listener = () => void;
 const listeners = new Set<Listener>();
 let messages: ChatMessage[] = [];
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const DB_NAME = "orachat.db";
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -34,7 +34,8 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
         id TEXT PRIMARY KEY NOT NULL,
         text TEXT NOT NULL,
         created_at_ms INTEGER NOT NULL,
-        direction TEXT NOT NULL CHECK (direction IN ('in', 'out'))
+        direction TEXT NOT NULL CHECK (direction IN ('in', 'out')),
+        sender_id TEXT
       );
       CREATE INDEX IF NOT EXISTS messages_created_at_ms ON messages(created_at_ms);
     `);
@@ -51,18 +52,25 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
   return db;
 }
 
-type DbRow = { id: string; text: string; created_at_ms: number; direction: "in" | "out" };
+type DbRow = {
+  id: string;
+  text: string;
+  created_at_ms: number;
+  direction: "in" | "out";
+  sender_id: string | null;
+};
 
 async function hydrateCacheFromDb(): Promise<void> {
   const database = await dbReady;
   const rows = await database.getAllAsync<DbRow>(
-    "SELECT id, text, created_at_ms, direction FROM messages ORDER BY created_at_ms ASC, id ASC"
+    "SELECT id, text, created_at_ms, direction, sender_id FROM messages ORDER BY created_at_ms ASC, id ASC"
   );
   messages = rows.map((r) => ({
     id: r.id,
     text: r.text,
     createdAtMs: r.created_at_ms,
     direction: r.direction,
+    ...(r.sender_id != null ? { senderId: r.sender_id } : {}),
   }));
   emit();
 }
@@ -73,11 +81,12 @@ function persistMessages(toPersist: ChatMessage[]): void {
     .then(async (database) => {
       for (const m of toPersist) {
         await database.runAsync(
-          "INSERT OR IGNORE INTO messages (id, text, created_at_ms, direction) VALUES (?, ?, ?, ?)",
+          "INSERT OR IGNORE INTO messages (id, text, created_at_ms, direction, sender_id) VALUES (?, ?, ?, ?, ?)",
           m.id,
           m.text,
           m.createdAtMs,
-          m.direction
+          m.direction,
+          m.senderId ?? null
         );
       }
     })
