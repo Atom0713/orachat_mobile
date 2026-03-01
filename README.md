@@ -13,8 +13,8 @@ Mobile (IOS & Android) orachat app. Made for friends, family, portfolio, and per
 2. Start the app
 
 For IOS
-   ```bash
-   EXPO_PUBLIC_RECIPIENT=bob EXPO_PUBLIC_USERNAME=alice EXPO_PUBLIC_ORACHAT_API_URL="http://localhost:8000" npx expo start -c
+```bash
+EXPO_PUBLIC_RECIPIENT=bob EXPO_PUBLIC_USERNAME=alice EXPO_PUBLIC_ORACHAT_API_URL="http://localhost:8000" npx expo start -c
    ```
 
 For Android

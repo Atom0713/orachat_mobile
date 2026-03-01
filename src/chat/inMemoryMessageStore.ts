@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import * as SQLite from "expo-sqlite";
 import type { ChatMessage } from "./types";
 
 type Listener = () => void;
@@ -6,8 +7,74 @@ type Listener = () => void;
 const listeners = new Set<Listener>();
 let messages: ChatMessage[] = [];
 
+const SCHEMA_VERSION = 1;
+const DB_NAME = "orachat.db";
+
+let db: SQLite.SQLiteDatabase | null = null;
+const dbReady = initDbIfNeeded();
+const hydrated = dbReady.then(() => hydrateCacheFromDb()).catch((err) => {
+  console.warn("[chat] SQLite hydrate failed, using empty cache", err);
+});
+
 function emit() {
   for (const l of listeners) l();
+}
+
+async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
+  if (db) return db;
+  const database = await SQLite.openDatabaseAsync(DB_NAME);
+  await database.execAsync("PRAGMA journal_mode = WAL;");
+  const versionResult = await database.getFirstAsync<{ user_version: number }>(
+    "PRAGMA user_version"
+  );
+  const version = versionResult?.user_version ?? 0;
+  if (version < SCHEMA_VERSION) {
+    await database.execAsync(`
+      CREATE TABLE IF NOT EXISTS messages (
+        id TEXT PRIMARY KEY NOT NULL,
+        text TEXT NOT NULL,
+        created_at_ms INTEGER NOT NULL,
+        direction TEXT NOT NULL CHECK (direction IN ('in', 'out'))
+      );
+      CREATE INDEX IF NOT EXISTS messages_created_at_ms ON messages(created_at_ms);
+    `);
+    await database.runAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+  }
+  db = database;
+  return db;
+}
+
+type DbRow = { id: string; text: string; created_at_ms: number; direction: "in" | "out" };
+
+async function hydrateCacheFromDb(): Promise<void> {
+  const database = await dbReady;
+  const rows = await database.getAllAsync<DbRow>(
+    "SELECT id, text, created_at_ms, direction FROM messages ORDER BY created_at_ms ASC, id ASC"
+  );
+  messages = rows.map((r) => ({
+    id: r.id,
+    text: r.text,
+    createdAtMs: r.created_at_ms,
+    direction: r.direction,
+  }));
+  emit();
+}
+
+function persistMessages(toPersist: ChatMessage[]): void {
+  if (toPersist.length === 0) return;
+  dbReady
+    .then(async (database) => {
+      for (const m of toPersist) {
+        await database.runAsync(
+          "INSERT OR IGNORE INTO messages (id, text, created_at_ms, direction) VALUES (?, ?, ?, ?)",
+          m.id,
+          m.text,
+          m.createdAtMs,
+          m.direction
+        );
+      }
+    })
+    .catch((err) => console.warn("[chat] SQLite persist failed", err));
 }
 
 export const inMemoryMessageStore = {
@@ -18,11 +85,6 @@ export const inMemoryMessageStore = {
     listeners.add(listener);
     return () => listeners.delete(listener);
   },
-  seedIfEmpty(seed: ChatMessage[]) {
-    if (messages.length > 0) return;
-    messages = seed.slice().sort((a, b) => a.createdAtMs - b.createdAtMs);
-    emit();
-  },
   append(newMessages: ChatMessage[]) {
     if (newMessages.length === 0) return;
     const existing = new Set(messages.map((m) => m.id));
@@ -30,8 +92,14 @@ export const inMemoryMessageStore = {
     if (deduped.length === 0) return;
     messages = messages.concat(deduped).sort((a, b) => a.createdAtMs - b.createdAtMs);
     emit();
+    persistMessages(deduped);
   },
 };
+
+/** Call early in app lifecycle so cache is hydrated from DB before first render if possible. */
+export function ensureMessagesHydrated(): Promise<void> {
+  return hydrated;
+}
 
 export function useMessages(): ChatMessage[] {
   return useSyncExternalStore(
@@ -40,4 +108,3 @@ export function useMessages(): ChatMessage[] {
     inMemoryMessageStore.getSnapshot
   );
 }
-

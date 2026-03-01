@@ -1,6 +1,6 @@
 import { getBaseUrl } from "../api/config";
-import type { ChatMessage, ChatTransport, PollOptions } from "./types";
 import { inMemoryMessageStore } from "./inMemoryMessageStore";
+import type { ChatMessage, ChatTransport, PollOptions } from "./types";
 
 type OrachatApiMessage = {
   id: string;
@@ -54,8 +54,8 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
  */
 export function createPollingTransport(config: OrachatTransportConfig = {}): ChatTransport {
   const baseUrl = getBaseUrl(config.baseUrl);
-  const senderId = config.senderId ?? "bob";
-  const recipientId = config.recipientId ?? "server";
+  const senderId = process.env.EXPO_PUBLIC_USERNAME ?? "bob";
+  const recipientId = process.env.EXPO_PUBLIC_RECIPIENT ?? "server";
 
   return {
     async sendMessage(text: string) {
