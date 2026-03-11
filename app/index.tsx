@@ -13,7 +13,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useMessages } from "../src/chat/inMemoryMessageStore";
+import { getOrCreateConversation, setConversationDisplayName } from "../src/chat/conversationStore";
+import { inMemoryMessageStore, useMessages } from "../src/chat/inMemoryMessageStore";
 import { createPollingTransport } from "../src/chat/transport";
 import type { ChatMessage } from "../src/chat/types";
 import { useChatPolling } from "../src/chat/useChatPolling";
@@ -21,12 +22,15 @@ import { getLocalUser, type LocalUser } from "../src/user/userStore";
 
 export default function Index() {
   const router = useRouter();
-  const { recipientId, recipientDisplayName } = useLocalSearchParams<{
-    recipientId?: string;
-    recipientDisplayName?: string;
-  }>();
+  const { recipientId, recipientDisplayName, conversationId: conversationIdParam } =
+    useLocalSearchParams<{
+      recipientId?: string;
+      recipientDisplayName?: string;
+      conversationId?: string;
+    }>();
   const [user, setUser] = useState<LocalUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [resolvedConversationId, setResolvedConversationId] = useState<number | null>(null);
 
   useEffect(() => {
     const goRegister = () => router.replace("/register" as never);
@@ -39,29 +43,53 @@ export default function Index() {
       .finally(() => setLoading(false));
   }, [router]);
 
-  const transport = React.useMemo(
-    () =>
-      user
-        ? createPollingTransport({
-            senderId: user.id,
-            recipientId: recipientId ?? undefined,
-          })
-        : null,
-    [user?.id, recipientId]
-  );
+  useEffect(() => {
+    if (!recipientId || !user || conversationIdParam != null) return;
+    getOrCreateConversation(recipientId).then((conv) => {
+      setResolvedConversationId(conv.id);
+    });
+  }, [recipientId, user, conversationIdParam]);
+
+  const conversationId = conversationIdParam != null
+    ? parseInt(conversationIdParam, 10)
+    : resolvedConversationId;
+
+  const transport = React.useMemo(() => {
+    if (!user || !recipientId || conversationId == null || Number.isNaN(conversationId))
+      return null;
+    return createPollingTransport({
+      senderId: user.id,
+      recipientId,
+      conversationId,
+    });
+  }, [user?.id, recipientId, conversationId]);
 
   const messages = useMessages();
   const filteredMessages = React.useMemo(() => {
-    if (!recipientId) return messages;
-    return messages.filter(
-      (m) =>
-        m.direction === "out" ||
-        (m.direction === "in" && m.senderId === recipientId)
-    );
-  }, [messages, recipientId]);
+    if (conversationId == null || Number.isNaN(conversationId)) return [];
+    return messages.filter((m) => m.conversationId === conversationId);
+  }, [messages, conversationId]);
   const [draft, setDraft] = React.useState("");
 
   useChatPolling(transport ?? { sendMessage: async () => {}, poll: async () => [] }, 1200);
+
+  React.useEffect(() => {
+    if (conversationId == null || Number.isNaN(conversationId)) return;
+    inMemoryMessageStore.markConversationAsRead(conversationId);
+  }, [conversationId, filteredMessages.length]);
+
+  React.useEffect(() => {
+    if (
+      conversationId != null &&
+      !Number.isNaN(conversationId) &&
+      recipientDisplayName != null &&
+      recipientDisplayName !== ""
+    ) {
+      setConversationDisplayName(conversationId, recipientDisplayName).catch((err) =>
+        console.warn("[chat] setConversationDisplayName failed", err)
+      );
+    }
+  }, [conversationId, recipientDisplayName]);
 
   const data = React.useMemo(() => [...filteredMessages].reverse(), [filteredMessages]);
 
@@ -93,13 +121,30 @@ export default function Index() {
 
   const canSend = draft.trim().length > 0;
 
+  useEffect(() => {
+    if (loading || !user) return;
+    if (!recipientId) {
+      router.replace("/chats" as never);
+    }
+  }, [loading, user, recipientId, router]);
+
   if (loading || !user) return null;
+  if (!recipientId) return null;
+  if (conversationId == null || Number.isNaN(conversationId)) return null;
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
       <Stack.Screen
         options={{
-          title: "Orachat",
+          title: recipientDisplayName ?? "Chat",
+          headerLeft: () => (
+            <Pressable
+              onPress={() => router.back()}
+              style={({ pressed }) => [styles.headerBtn, pressed && styles.headerBtnPressed]}
+            >
+              <Ionicons name="chevron-back" size={26} color="#FFFFFF" />
+            </Pressable>
+          ),
           headerRight: () => (
             <Pressable
               onPress={() => router.push({ pathname: "/user-search" })}

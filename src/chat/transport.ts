@@ -1,4 +1,6 @@
 import { getBaseUrl } from "../api/config";
+import { searchUsers } from "../api/users";
+import { getOrCreateConversation, setConversationDisplayName } from "./conversationStore";
 import { inMemoryMessageStore } from "./inMemoryMessageStore";
 import type { ChatMessage, ChatTransport, PollOptions } from "./types";
 
@@ -18,13 +20,14 @@ type OrachatSendMessageRequest = {
 
 export type OrachatTransportConfig = {
   baseUrl?: string;
-  senderId?: string;
-  recipientId?: string;
+  senderId: string;
+  recipientId: string;
+  conversationId: number;
 };
 
-function parseCreatedAtMs(iso: string) {
+function normalizeCreatedAt(iso: string): string {
   const ms = Date.parse(iso);
-  return Number.isFinite(ms) ? ms : Date.now();
+  return Number.isFinite(ms) ? new Date(ms).toISOString() : new Date().toISOString();
 }
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -52,10 +55,11 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
  * - GET `/messages/inbox?user_id=...`
  * - POST `/messages/ack/{message_id}`
  */
-export function createPollingTransport(config: OrachatTransportConfig = {}): ChatTransport {
+export function createPollingTransport(config: OrachatTransportConfig): ChatTransport {
   const baseUrl = getBaseUrl(config.baseUrl);
   const senderId = config.senderId;
-  const recipientId = config.recipientId ?? process.env.EXPO_PUBLIC_RECIPIENT ?? "server";
+  const recipientId = config.recipientId;
+  const conversationId = config.conversationId;
 
   return {
     async sendMessage(text: string) {
@@ -75,44 +79,59 @@ export function createPollingTransport(config: OrachatTransportConfig = {}): Cha
         const outgoing: ChatMessage = {
           id: created.id,
           text: created.content,
-          createdAtMs: parseCreatedAtMs(created.created_at),
+          createdAt: normalizeCreatedAt(created.created_at),
           direction: "out",
+          conversationId,
+          unread: false,
         };
         inMemoryMessageStore.append([outgoing]);
       } catch (err) {
         console.error("[chat] send request failed", err);
-        // Fall back to optimistic local append if the backend is unreachable.
         inMemoryMessageStore.append([
-          { id: `local-${Date.now()}`, text, createdAtMs: Date.now(), direction: "out" },
+          {
+            id: `local-${Date.now()}`,
+            text,
+            createdAt: new Date().toISOString(),
+            direction: "out",
+            conversationId,
+            unread: false,
+          },
         ]);
         throw err;
       }
     },
 
     async poll(options?: PollOptions) {
-      const since = options?.sinceCreatedAtMs ?? 0;
+      const since = options?.sinceCreatedAt ?? "";
       const limit = options?.limit ?? 50;
-      
-      console.log("[chat] polling", { since, recipientId, senderId });
+
       const inbox = await fetchJson<OrachatApiMessage[]>(
         `${baseUrl}/messages/inbox?user_id=${encodeURIComponent(senderId)}`
       );
 
-      const received = inbox
-        .map<ChatMessage>((m) => ({
-          id: m.id,
-          text: m.content,
-          createdAtMs: parseCreatedAtMs(m.created_at),
-          direction: "in",
-          senderId: m.sender_id,
-        }))
-        .filter((m) => m.createdAtMs > since)
-        .sort((a, b) => a.createdAtMs - b.createdAtMs)
+      const withConversations = await Promise.all(
+        inbox
+          .filter((m) => m.sender_id != null && m.sender_id !== "")
+          .map(async (m) => {
+            const conv = await getOrCreateConversation(m.sender_id as string);
+            return {
+              id: m.id,
+              text: m.content,
+              createdAt: normalizeCreatedAt(m.created_at),
+              direction: "in" as const,
+              conversationId: conv.id,
+              unread: false,
+            };
+          })
+      );
+
+      const received: ChatMessage[] = withConversations
+        .filter((m) => m.createdAt > since)
+        .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
         .slice(0, limit);
 
       if (received.length === 0) return [];
 
-      // Ack only messages we're returning so we don't drop anything unintentionally.
       await Promise.allSettled(
         received.map((m) => fetch(`${baseUrl}/messages/ack/${encodeURIComponent(m.id)}`, { method: "POST" }))
       );
@@ -120,5 +139,66 @@ export function createPollingTransport(config: OrachatTransportConfig = {}): Cha
       return received;
     },
   };
+}
+
+/**
+ * Fetch inbox for the given user, map to ChatMessage with unread: true, ack on server, and return.
+ * Used on the chats page to pull new messages and store them as unread.
+ */
+export async function pollInboxAsUnread(config: {
+  baseUrl?: string;
+  senderId: string;
+}): Promise<ChatMessage[]> {
+  const baseUrl = getBaseUrl(config.baseUrl);
+  const senderId = config.senderId;
+
+  const inbox = await fetchJson<OrachatApiMessage[]>(
+    `${baseUrl}/messages/inbox?user_id=${encodeURIComponent(senderId)}`
+  );
+
+  const withConversations = await Promise.all(
+    inbox
+      .filter((m) => m.sender_id != null && m.sender_id !== "")
+      .map(async (m) => {
+        const peerId = m.sender_id as string;
+        const conv = await getOrCreateConversation(peerId);
+        if (conv.display_name == null) {
+          try {
+            const users = await searchUsers(peerId);
+            const match = users.find((u) => u.id === peerId);
+            if (match) {
+              const name = match.display_name ?? match.username ?? peerId;
+              await setConversationDisplayName(conv.id, name);
+            }
+          } catch {
+            // ignore: search may not support id lookup
+          }
+        }
+        return {
+          id: m.id,
+          text: m.content,
+          createdAt: normalizeCreatedAt(m.created_at),
+          direction: "in" as const,
+          conversationId: conv.id,
+          unread: true,
+        };
+      })
+  );
+
+  const received = withConversations.sort((a, b) =>
+    a.createdAt.localeCompare(b.createdAt)
+  );
+
+  if (received.length === 0) return [];
+
+  await Promise.allSettled(
+    received.map((m) =>
+      fetch(`${baseUrl}/messages/ack/${encodeURIComponent(m.id)}`, {
+        method: "POST",
+      })
+    )
+  );
+
+  return received;
 }
 

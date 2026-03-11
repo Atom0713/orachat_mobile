@@ -1,14 +1,15 @@
 export type ChatMessage = {
   id: string;
   text: string;
-  createdAtMs: number;
+  createdAt: string; // ISO 8601 timestamp
   direction: "in" | "out";
-  /** Set for incoming messages (sender of the message). */
-  senderId?: string;
+  conversationId: number;
+  /** true = unread, false = read. Default true for incoming when fetched on chats page. */
+  unread: boolean;
 };
 
 export type PollOptions = {
-  sinceCreatedAtMs?: number;
+  sinceCreatedAt?: string; // ISO 8601 timestamp
   limit?: number;
 };
 

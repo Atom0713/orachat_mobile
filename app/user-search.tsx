@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { searchUsers, type SearchUser } from "../src/api/users";
+import { getOrCreateConversation, setConversationDisplayName } from "../src/chat/conversationStore";
 
 export default function UserSearchScreen() {
   const router = useRouter();
@@ -38,11 +39,17 @@ export default function UserSearchScreen() {
   }, [query]);
 
   const onSelectUser = useCallback(
-    (item: SearchUser) => {
+    async (item: SearchUser) => {
       const recipientDisplayName = item.display_name ?? item.username ?? item.id;
+      const conversation = await getOrCreateConversation(item.id);
+      await setConversationDisplayName(conversation.id, recipientDisplayName);
       router.push({
         pathname: "/",
-        params: { recipientId: item.id, recipientDisplayName },
+        params: {
+          recipientId: item.id,
+          recipientDisplayName,
+          conversationId: String(conversation.id),
+        },
       } as never);
     },
     [router]

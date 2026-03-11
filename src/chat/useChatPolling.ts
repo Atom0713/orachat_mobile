@@ -3,7 +3,7 @@ import type { ChatTransport } from "./types";
 import { inMemoryMessageStore } from "./inMemoryMessageStore";
 
 export function useChatPolling(transport: ChatTransport, intervalMs: number) {
-  const lastSeenRef = React.useRef<number>(0);
+  const lastSeenRef = React.useRef<string>("");
 
   React.useEffect(() => {
     let cancelled = false;
@@ -11,11 +11,13 @@ export function useChatPolling(transport: ChatTransport, intervalMs: number) {
 
     const tick = async () => {
       try {
-        const newMessages = await transport.poll({ sinceCreatedAtMs: lastSeenRef.current });
+        const newMessages = await transport.poll({ sinceCreatedAt: lastSeenRef.current });
         if (cancelled) return;
         if (newMessages.length > 0) {
-          const newest = Math.max(...newMessages.map((m) => m.createdAtMs));
-          lastSeenRef.current = Math.max(lastSeenRef.current, newest);
+          const newest = newMessages.reduce((max, m) =>
+            m.createdAt > max ? m.createdAt : max
+          , newMessages[0].createdAt);
+          lastSeenRef.current = newest > lastSeenRef.current ? newest : lastSeenRef.current;
           inMemoryMessageStore.append(newMessages);
         }
       } catch (err) {

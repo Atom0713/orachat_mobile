@@ -7,7 +7,7 @@ type Listener = () => void;
 const listeners = new Set<Listener>();
 let messages: ChatMessage[] = [];
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 7;
 const DB_NAME = "orachat.db";
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -24,23 +24,32 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
   if (db) return db;
   const database = await SQLite.openDatabaseAsync(DB_NAME);
   await database.execAsync("PRAGMA journal_mode = WAL;");
-  const versionResult = await database.getFirstAsync<{ user_version: number }>(
-    "PRAGMA user_version"
-  );
-  const version = versionResult?.user_version ?? 0;
-  if (version < SCHEMA_VERSION) {
-    await database.execAsync(`
-      CREATE TABLE IF NOT EXISTS messages (
-        id TEXT PRIMARY KEY NOT NULL,
-        text TEXT NOT NULL,
-        created_at_ms INTEGER NOT NULL,
-        direction TEXT NOT NULL CHECK (direction IN ('in', 'out')),
-        sender_id TEXT
-      );
-      CREATE INDEX IF NOT EXISTS messages_created_at_ms ON messages(created_at_ms);
-    `);
-    await database.runAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
-  }
+  
+  await database.execAsync(`DROP TABLE IF EXISTS messages;`);
+  await database.execAsync(`
+    CREATE TABLE messages (
+      id TEXT PRIMARY KEY NOT NULL,
+      text TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      direction TEXT NOT NULL CHECK (direction IN ('in', 'out')),
+      conversation_id INTEGER NOT NULL,
+      unread INTEGER NOT NULL DEFAULT 1
+    );
+    CREATE INDEX IF NOT EXISTS messages_created_at ON messages(created_at);
+    CREATE INDEX IF NOT EXISTS messages_conversation_id ON messages(conversation_id);
+  `);
+  await database.execAsync(`DROP TABLE IF EXISTS conversations;`);
+  await database.execAsync(`
+    CREATE TABLE conversations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      peer_id TEXT NOT NULL,
+      display_name TEXT,
+      created_at TEXT NOT NULL
+    );
+  `);
+  await database.runAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+  await ensureUnreadColumn(database);
+  await database.execAsync(`DROP TABLE IF EXISTS user;`);
   await database.execAsync(`
     CREATE TABLE IF NOT EXISTS user (
       id TEXT PRIMARY KEY NOT NULL,
@@ -48,29 +57,46 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
       display_name TEXT
     );
   `);
-  db = database;
-  return db;
+  return database;
+}
+
+async function ensureUnreadColumn(database: SQLite.SQLiteDatabase): Promise<void> {
+  try {
+    const tableInfo = await database.getAllAsync<{ name: string }>(
+      "PRAGMA table_info(messages)"
+    );
+    const hasUnread = tableInfo?.some((c) => c.name === "unread") ?? false;
+    if (!hasUnread) {
+      await database.execAsync(`
+        ALTER TABLE messages ADD COLUMN unread INTEGER NOT NULL DEFAULT 1;
+      `);
+    }
+  } catch {
+    // messages table may not exist yet (e.g. no conversations)
+  }
 }
 
 type DbRow = {
   id: string;
   text: string;
-  created_at_ms: number;
+  created_at: string;
   direction: "in" | "out";
-  sender_id: string | null;
+  conversation_id: number;
+  unread: number;
 };
 
 async function hydrateCacheFromDb(): Promise<void> {
   const database = await dbReady;
   const rows = await database.getAllAsync<DbRow>(
-    "SELECT id, text, created_at_ms, direction, sender_id FROM messages ORDER BY created_at_ms ASC, id ASC"
+    "SELECT id, text, created_at, direction, conversation_id, unread FROM messages ORDER BY created_at ASC, id ASC"
   );
   messages = rows.map((r) => ({
     id: r.id,
     text: r.text,
-    createdAtMs: r.created_at_ms,
+    createdAt: r.created_at,
     direction: r.direction,
-    ...(r.sender_id != null ? { senderId: r.sender_id } : {}),
+    conversationId: r.conversation_id,
+    unread: r.unread !== 0,
   }));
   emit();
 }
@@ -81,12 +107,13 @@ function persistMessages(toPersist: ChatMessage[]): void {
     .then(async (database) => {
       for (const m of toPersist) {
         await database.runAsync(
-          "INSERT OR IGNORE INTO messages (id, text, created_at_ms, direction, sender_id) VALUES (?, ?, ?, ?, ?)",
+          "INSERT OR IGNORE INTO messages (id, text, created_at, direction, conversation_id, unread) VALUES (?, ?, ?, ?, ?, ?)",
           m.id,
           m.text,
-          m.createdAtMs,
+          m.createdAt,
           m.direction,
-          m.senderId ?? null
+          m.conversationId,
+          m.unread ? 1 : 0
         );
       }
     })
@@ -106,9 +133,23 @@ export const inMemoryMessageStore = {
     const existing = new Set(messages.map((m) => m.id));
     const deduped = newMessages.filter((m) => !existing.has(m.id));
     if (deduped.length === 0) return;
-    messages = messages.concat(deduped).sort((a, b) => a.createdAtMs - b.createdAtMs);
+    messages = messages.concat(deduped).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     emit();
     persistMessages(deduped);
+  },
+  markConversationAsRead(conversationId: number) {
+    const updated = messages.filter((m) => m.conversationId === conversationId && m.unread);
+    if (updated.length === 0) return;
+    for (const m of updated) m.unread = false;
+    emit();
+    dbReady
+      .then((database) =>
+        database.runAsync(
+          "UPDATE messages SET unread = 0 WHERE conversation_id = ?",
+          conversationId
+        )
+      )
+      .catch((err) => console.warn("[chat] markAsRead failed", err));
   },
 };
 

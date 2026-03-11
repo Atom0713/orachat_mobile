@@ -36,8 +36,11 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (hasUser === false && !hasRedirected.current) {
-      hasRedirected.current = true;
+    if (hasUser === null || hasRedirected.current) return;
+    hasRedirected.current = true;
+    if (hasUser) {
+      router.replace("/chats" as never);
+    } else {
       router.replace("/register" as never);
     }
   }, [hasUser, router]);

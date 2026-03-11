@@ -22,7 +22,7 @@ description: General Orachat mobile app context (stack, layout, env, UI), messag
 ## Environment
 
 Run examples:  
-`EXPO_PUBLIC_RECIPIENT=bob EXPO_PUBLIC_USERNAME=alice EXPO_PUBLIC_ORACHAT_API_URL="http://localhost:8000" npx expo start -c` (iOS); for Android use `http://10.0.2.2:8000`.
+`EXPO_PUBLIC_ORACHAT_API_URL="http://localhost:8000" npx expo start -c` (iOS); for Android use `http://10.0.2.2:8000`.
 
 ## UI & navigation
 
@@ -48,14 +48,14 @@ Run examples:
 type ChatMessage = {
   id: string;
   text: string;
-  createdAtMs: number;
+  createdAt: string; // ISO 8601 timestamp
   direction: "in" | "out";
 };
 ```
 
 - `id`: Unique message ID (from backend or `local-${Date.now()}` for optimistic sends)
 - `text`: Plaintext content (will hold ciphertext when encrypted)
-- `createdAtMs`: Unix timestamp in milliseconds
+- `createdAt`: ISO 8601 timestamp (TEXT)
 - `direction`: `"in"` = received, `"out"` = sent
 
 ### ChatTransport
@@ -67,13 +67,13 @@ type ChatTransport = {
 };
 
 type PollOptions = {
-  sinceCreatedAtMs?: number;
+  sinceCreatedAt?: string; // ISO 8601 timestamp
   limit?: number;
 };
 ```
 
 - `sendMessage`: Sends text; transport appends to `inMemoryMessageStore` on success (or optimistic append on failure)
-- `poll`: Fetches new messages since `sinceCreatedAtMs`, returns up to `limit` (default 50)
+- `poll`: Fetches new messages since `sinceCreatedAt`, returns up to `limit` (default 50)
 
 ## Transport Config
 
@@ -86,7 +86,7 @@ type OrachatTransportConfig = {
 ```
 
 - `baseUrl`: API root (default: `EXPO_PUBLIC_ORACHAT_API_URL` or `http://10.0.2.2:8000`)
-- `senderId` / `recipientId`: When provided (e.g. from local user after registration), used for send/inbox; otherwise fallback to `EXPO_PUBLIC_USERNAME` / `EXPO_PUBLIC_RECIPIENT`
+- `senderId` / `recipientId`: When provided (e.g. from local user after registration), used for send/inbox
 
 ## API Endpoints
 
@@ -122,10 +122,10 @@ type OrachatApiMessage = {
 CREATE TABLE messages (
   id TEXT PRIMARY KEY NOT NULL,
   text TEXT NOT NULL,
-  created_at_ms INTEGER NOT NULL,
+  created_at TEXT NOT NULL,
   direction TEXT NOT NULL CHECK (direction IN ('in', 'out'))
 );
-CREATE INDEX messages_created_at_ms ON messages(created_at_ms);
+CREATE INDEX messages_created_at ON messages(created_at);
 
 CREATE TABLE user (
   id TEXT PRIMARY KEY NOT NULL,
@@ -145,14 +145,14 @@ CREATE TABLE user (
 
 ### Store API
 
-- `append(newMessages)`: Dedupes by `id`, sorts by `createdAtMs`, persists, notifies subscribers
+- `append(newMessages)`: Dedupes by `id`, sorts by `createdAt`, persists, notifies subscribers
 - `getSnapshot()` / `subscribe()`: For `useSyncExternalStore`
 
 ## Polling Flow
 
 `useChatPolling(transport, intervalMs)`:
 
-1. Polls `transport.poll({ sinceCreatedAtMs: lastSeen })` on interval
+1. Polls `transport.poll({ sinceCreatedAt: lastSeen })` on interval
 2. On new messages: updates `lastSeenRef`, appends to store
 3. Store persists to SQLite and notifies UI
 
