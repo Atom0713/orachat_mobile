@@ -1,5 +1,5 @@
 import { getBaseUrl } from "../api/config";
-import { searchUsers } from "../api/users";
+import { getUserById } from "../api/users";
 import { getOrCreateConversation, setConversationDisplayName } from "./conversationStore";
 import { inMemoryMessageStore } from "./inMemoryMessageStore";
 import type { ChatMessage, ChatTransport, PollOptions } from "./types";
@@ -113,7 +113,19 @@ export function createPollingTransport(config: OrachatTransportConfig): ChatTran
         inbox
           .filter((m) => m.sender_id != null && m.sender_id !== "")
           .map(async (m) => {
-            const conv = await getOrCreateConversation(m.sender_id as string);
+            const peerId = m.sender_id as string;
+            const conv = await getOrCreateConversation(peerId);
+            if (conv.display_name == null) {
+              try {
+                const user = await getUserById(peerId);
+                if (user) {
+                  const name = user.display_name ?? user.username ?? peerId;
+                  await setConversationDisplayName(conv.id, name);
+                }
+              } catch {
+                // ignore
+              }
+            }
             return {
               id: m.id,
               text: m.content,
@@ -164,14 +176,13 @@ export async function pollInboxAsUnread(config: {
         const conv = await getOrCreateConversation(peerId);
         if (conv.display_name == null) {
           try {
-            const users = await searchUsers(peerId);
-            const match = users.find((u) => u.id === peerId);
-            if (match) {
-              const name = match.display_name ?? match.username ?? peerId;
+            const user = await getUserById(peerId);
+            if (user) {
+              const name = user.display_name ?? user.username ?? peerId;
               await setConversationDisplayName(conv.id, name);
             }
           } catch {
-            // ignore: search may not support id lookup
+            // ignore: e.g. network error
           }
         }
         return {

@@ -73,3 +73,20 @@ export async function searchUsers(query: string): Promise<SearchUser[]> {
   const url = `${baseUrl}/users/search?q=${q}`;
   return fetchJson<SearchUser[]>(url);
 }
+
+/**
+ * Fetch user info by id (e.g. for displaying peer in chats when a new conversation is created).
+ * GET /users/{userId}. Returns null on 404.
+ */
+export async function getUserById(userId: string): Promise<SearchUser | null> {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(`${baseUrl}/users/${encodeURIComponent(userId)}`, {
+    headers: { Accept: "application/json" },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} ${res.statusText}${text ? `: ${text}` : ""}`);
+  }
+  return (await res.json()) as SearchUser;
+}

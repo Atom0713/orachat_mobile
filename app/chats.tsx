@@ -15,7 +15,6 @@ import { useInboxPolling } from "../src/chat/useInboxPolling";
 import type { ConversationWithLastMessage } from "../src/chat/conversationStore";
 import { getLocalUser } from "../src/user/userStore";
 
-const LAST_MESSAGE_MAX_LEN = 48;
 const formatTime = (timestamp: number | string | null) => {
   if (timestamp == null) return "";
   const d = typeof timestamp === "string" ? new Date(timestamp) : new Date(timestamp);
@@ -62,11 +61,6 @@ export default function ChatsScreen() {
   const renderItem = useCallback(
     ({ item }: { item: ConversationWithLastMessage }) => {
       const displayName = item.display_name ?? item.peer_id;
-      const preview = item.lastMessageText
-        ? item.lastMessageText.length > LAST_MESSAGE_MAX_LEN
-          ? item.lastMessageText.slice(0, LAST_MESSAGE_MAX_LEN) + "…"
-          : item.lastMessageText
-        : "No messages yet";
       const timeStr = formatTime(item.lastMessageAt ?? item.created_at);
 
       return (
@@ -82,9 +76,6 @@ export default function ChatsScreen() {
               </Text>
               {item.hasUnread ? <View style={styles.unreadDot} /> : null}
             </View>
-            <Text style={styles.rowPreview} numberOfLines={1}>
-              {preview}
-            </Text>
           </View>
           <Text style={styles.rowTime}>{timeStr}</Text>
         </Pressable>
