@@ -141,6 +141,8 @@ export const inMemoryMessageStore = {
     const updated = messages.filter((m) => m.conversationId === conversationId && m.unread);
     if (updated.length === 0) return;
     for (const m of updated) m.unread = false;
+    // New array reference so useSyncExternalStore subscribers re-render (same ref = skipped).
+    messages = messages.slice();
     emit();
     dbReady
       .then((database) =>
