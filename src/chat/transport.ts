@@ -1,5 +1,6 @@
 import { getBaseUrl } from "../api/config";
 import { getUserById } from "../api/users";
+import { decryptIncomingMessage, encryptOutgoingMessage } from "../crypto/e2e";
 import { getOrCreateConversation, setConversationDisplayName } from "./conversationStore";
 import { inMemoryMessageStore } from "./inMemoryMessageStore";
 import type { ChatMessage, ChatTransport, PollOptions } from "./types";
@@ -8,14 +9,14 @@ type OrachatApiMessage = {
   id: string;
   sender_id: string;
   recipient_id: string;
-  content: string;
+  ciphertext: string;
   created_at: string; // ISO datetime
 };
 
 type OrachatSendMessageRequest = {
   sender_id: string;
   recipient_id: string;
-  content: string;
+  ciphertext: string;
 };
 
 export type OrachatTransportConfig = {
@@ -45,8 +46,21 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
     throw new Error(`HTTP ${res.status} ${res.statusText}${text ? `: ${text}` : ""}`);
   }
 
-  // FastAPI returns JSON for successful routes used here
   return (await res.json()) as T;
+}
+
+async function decryptText(
+  ciphertext: string,
+  peerSenderId: string,
+  localUserId: string,
+  baseUrl?: string
+): Promise<string> {
+  try {
+    return await decryptIncomingMessage(ciphertext, peerSenderId, localUserId, baseUrl);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "decrypt error";
+    return `[Couldn't decrypt: ${msg}]`;
+  }
 }
 
 /**
@@ -63,10 +77,19 @@ export function createPollingTransport(config: OrachatTransportConfig): ChatTran
 
   return {
     async sendMessage(text: string) {
+      let ciphertext: string;
+      try {
+        ciphertext = await encryptOutgoingMessage(text, senderId, recipientId, baseUrl);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "encrypt failed";
+        console.error("[chat] encrypt failed", e);
+        throw new Error(msg);
+      }
+
       const body: OrachatSendMessageRequest = {
         sender_id: senderId,
         recipient_id: recipientId,
-        content: text,
+        ciphertext,
       };
 
       try {
@@ -78,7 +101,7 @@ export function createPollingTransport(config: OrachatTransportConfig): ChatTran
 
         const outgoing: ChatMessage = {
           id: created.id,
-          text: created.content,
+          text,
           createdAt: normalizeCreatedAt(created.created_at),
           direction: "out",
           conversationId,
@@ -126,9 +149,10 @@ export function createPollingTransport(config: OrachatTransportConfig): ChatTran
                 // ignore
               }
             }
+            const plain = await decryptText(m.ciphertext, peerId, senderId, baseUrl);
             return {
               id: m.id,
-              text: m.content,
+              text: plain,
               createdAt: normalizeCreatedAt(m.created_at),
               direction: "in" as const,
               conversationId: conv.id,
@@ -185,9 +209,10 @@ export async function pollInboxAsUnread(config: {
             // ignore: e.g. network error
           }
         }
+        const plain = await decryptText(m.ciphertext, peerId, senderId, baseUrl);
         return {
           id: m.id,
-          text: m.content,
+          text: plain,
           createdAt: normalizeCreatedAt(m.created_at),
           direction: "in" as const,
           conversationId: conv.id,
@@ -196,9 +221,7 @@ export async function pollInboxAsUnread(config: {
       })
   );
 
-  const received = withConversations.sort((a, b) =>
-    a.createdAt.localeCompare(b.createdAt)
-  );
+  const received = withConversations.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
   if (received.length === 0) return [];
 
@@ -212,4 +235,3 @@ export async function pollInboxAsUnread(config: {
 
   return received;
 }
-

@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { registerUser } from "../src/api/users";
+import { bootstrapE2EForUser } from "../src/crypto/e2e";
 import { getLocalUser, setLocalUser } from "../src/user/userStore";
 
 const USERNAME_MIN_LEN = 3;
@@ -61,6 +62,12 @@ export default function RegisterScreen() {
         username: res.username,
         display_name: res.display_name ?? displayName,
       });
+      try {
+        await bootstrapE2EForUser(res.id);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Key publish failed");
+        console.warn("[e2e] key publish failed", e);
+      }
       router.replace("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");

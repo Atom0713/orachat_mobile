@@ -2,6 +2,7 @@ import { Stack, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 
 import { ensureMessagesHydrated } from "../src/chat/inMemoryMessageStore";
+import { bootstrapE2EForUser } from "../src/crypto/e2e";
 import { getLocalUser } from "../src/user/userStore";
 
 export default function RootLayout() {
@@ -17,7 +18,14 @@ export default function RootLayout() {
     }, 5000);
     ensureMessagesHydrated()
       .then(() => getLocalUser())
-      .then((user) => {
+      .then(async (user) => {
+        if (user) {
+          try {
+            await bootstrapE2EForUser(user.id);
+          } catch (e) {
+            console.warn("[e2e] bootstrap failed", e);
+          }
+        }
         if (!cancelled) {
           resolved.current = true;
           setHasUser(!!user);
