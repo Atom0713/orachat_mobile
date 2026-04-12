@@ -1,5 +1,5 @@
-import { useSyncExternalStore } from "react";
 import * as SQLite from "expo-sqlite";
+import { useSyncExternalStore } from "react";
 import type { ChatMessage } from "./types";
 
 type Listener = () => void;
@@ -25,7 +25,6 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
   const database = await SQLite.openDatabaseAsync(DB_NAME);
   await database.execAsync("PRAGMA journal_mode = WAL;");
   
-  await database.execAsync(`DROP TABLE IF EXISTS messages;`);
   await database.execAsync(`
     CREATE TABLE messages (
       id TEXT PRIMARY KEY NOT NULL,
@@ -38,7 +37,7 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
     CREATE INDEX IF NOT EXISTS messages_created_at ON messages(created_at);
     CREATE INDEX IF NOT EXISTS messages_conversation_id ON messages(conversation_id);
   `);
-  await database.execAsync(`DROP TABLE IF EXISTS conversations;`);
+
   await database.execAsync(`
     CREATE TABLE conversations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,8 +47,7 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
     );
   `);
   await database.runAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
-  await ensureUnreadColumn(database);
-  await database.execAsync(`DROP TABLE IF EXISTS user;`);
+  
   await database.execAsync(`
     CREATE TABLE IF NOT EXISTS user (
       id TEXT PRIMARY KEY NOT NULL,
@@ -58,22 +56,6 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
     );
   `);
   return database;
-}
-
-async function ensureUnreadColumn(database: SQLite.SQLiteDatabase): Promise<void> {
-  try {
-    const tableInfo = await database.getAllAsync<{ name: string }>(
-      "PRAGMA table_info(messages)"
-    );
-    const hasUnread = tableInfo?.some((c) => c.name === "unread") ?? false;
-    if (!hasUnread) {
-      await database.execAsync(`
-        ALTER TABLE messages ADD COLUMN unread INTEGER NOT NULL DEFAULT 1;
-      `);
-    }
-  } catch {
-    // messages table may not exist yet (e.g. no conversations)
-  }
 }
 
 type DbRow = {
