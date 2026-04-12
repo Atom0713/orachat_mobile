@@ -26,7 +26,7 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
   await database.execAsync("PRAGMA journal_mode = WAL;");
   
   await database.execAsync(`
-    CREATE TABLE messages (
+    CREATE TABLE IF NOT EXISTS messages (
       id TEXT PRIMARY KEY NOT NULL,
       text TEXT NOT NULL,
       created_at TEXT NOT NULL,
@@ -39,7 +39,7 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
   `);
 
   await database.execAsync(`
-    CREATE TABLE conversations (
+    CREATE TABLE IF NOT EXISTS conversations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       peer_id TEXT NOT NULL,
       display_name TEXT,
@@ -55,6 +55,7 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
       display_name TEXT
     );
   `);
+  db = database;
   return database;
 }
 
