@@ -51,6 +51,7 @@ EXPO_PUBLIC_ORACHAT_API_URL="https://your-api-host" npx expo prebuild --platform
 ### 1. Change app version in the `app.json`
 ### 1. Build bundle
 ```bash
+cd /Users/artemsliusarenko/Developer/orachat_workspace/orachat_mobile/android
 EXPO_PUBLIC_ORACHAT_API_URL="<backedn url>" ./gradlew bundleRelease
 ```
 ### Upload '.jks' debugging
