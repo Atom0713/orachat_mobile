@@ -1,9 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { Stack, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -17,6 +20,7 @@ import { getOrCreateConversation, setConversationDisplayName } from "../src/chat
 
 export default function UserSearchScreen() {
   const router = useRouter();
+  const headerHeight = useHeaderHeight();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchUser[]>([]);
   const [loading, setLoading] = useState(false);
@@ -85,68 +89,75 @@ export default function UserSearchScreen() {
         }}
       />
 
-      <View style={styles.container}>
-        <View style={styles.searchRow}>
-          <TextInput
-            value={query}
-            onChangeText={(t) => {
-              setQuery(t);
-              setError(null);
-            }}
-            placeholder="Search by name or username…"
-            placeholderTextColor="#6B7A90"
-            style={styles.input}
-            returnKeyType="search"
-            onSubmitEditing={() => void onSearch()}
-            autoCapitalize="none"
-            autoCorrect={false}
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior="padding"
+        keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
+      >
+        <View style={styles.container}>
+          <View style={styles.searchRow}>
+            <TextInput
+              value={query}
+              onChangeText={(t) => {
+                setQuery(t);
+                setError(null);
+              }}
+              placeholder="Search by name or username…"
+              placeholderTextColor="#6B7A90"
+              style={styles.input}
+              returnKeyType="search"
+              onSubmitEditing={() => void onSearch()}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void onSearch()}
+              disabled={loading || !query.trim()}
+              style={({ pressed }) => [
+                styles.searchBtn,
+                (!query.trim() || loading) && styles.searchBtnDisabled,
+                pressed && query.trim() && !loading && styles.searchBtnPressed,
+              ]}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Ionicons name="search" size={22} color="#FFFFFF" />
+              )}
+            </Pressable>
+          </View>
+
+          {error && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+
+          {hasSearched && !loading && results.length === 0 && !error && (
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyText}>No users found</Text>
+            </View>
+          )}
+
+          <FlatList
+            style={styles.list}
+            contentContainerStyle={styles.listContent}
+            data={results}
+            keyExtractor={(u) => u.id}
+            renderItem={renderItem}
+            keyboardDismissMode="on-drag"
+            ListEmptyComponent={null}
           />
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => void onSearch()}
-            disabled={loading || !query.trim()}
-            style={({ pressed }) => [
-              styles.searchBtn,
-              (!query.trim() || loading) && styles.searchBtnDisabled,
-              pressed && query.trim() && !loading && styles.searchBtnPressed,
-            ]}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Ionicons name="search" size={22} color="#FFFFFF" />
-            )}
-          </Pressable>
         </View>
-
-        {error && (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
-
-        {hasSearched && !loading && results.length === 0 && !error && (
-          <View style={styles.emptyBox}>
-            <Text style={styles.emptyText}>No users found</Text>
-          </View>
-        )}
-
-        <FlatList
-          style={styles.list}
-          contentContainerStyle={styles.listContent}
-          data={results}
-          keyExtractor={(u) => u.id}
-          renderItem={renderItem}
-          keyboardDismissMode="on-drag"
-          ListEmptyComponent={null}
-        />
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F5FAFF" },
+  keyboardAvoid: { flex: 1 },
   container: { flex: 1 },
 
   searchRow: {

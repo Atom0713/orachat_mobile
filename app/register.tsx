@@ -1,7 +1,10 @@
+import { useHeaderHeight } from "@react-navigation/elements";
 import { Stack, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -28,6 +31,7 @@ function validateUsername(value: string): string | null {
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const headerHeight = useHeaderHeight();
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,53 +102,60 @@ export default function RegisterScreen() {
         }}
       />
 
-      <View style={styles.container}>
-        <Text style={styles.label}>Username</Text>
-        <TextInput
-          value={username}
-          onChangeText={(t) => {
-            setUsername(t);
-            setError(null);
-          }}
-          placeholder="e.g. alice_dev"
-          placeholderTextColor="#6B7A90"
-          style={styles.input}
-          returnKeyType="done"
-          onSubmitEditing={() => void onSubmit()}
-          autoCapitalize="none"
-          autoCorrect={false}
-          editable={!loading}
-        />
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior="padding"
+        keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
+      >
+        <View style={styles.container}>
+          <Text style={styles.label}>Username</Text>
+          <TextInput
+            value={username}
+            onChangeText={(t) => {
+              setUsername(t);
+              setError(null);
+            }}
+            placeholder="e.g. alice_dev"
+            placeholderTextColor="#6B7A90"
+            style={styles.input}
+            returnKeyType="done"
+            onSubmitEditing={() => void onSubmit()}
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!loading}
+          />
 
-        {error && (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
-
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => void onSubmit()}
-          disabled={!canSubmit}
-          style={({ pressed }) => [
-            styles.submitBtn,
-            !canSubmit && styles.submitBtnDisabled,
-            pressed && canSubmit && styles.submitBtnPressed,
-          ]}
-        >
-          {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <Text style={styles.submitText}>Register</Text>
+          {error && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
           )}
-        </Pressable>
-      </View>
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void onSubmit()}
+            disabled={!canSubmit}
+            style={({ pressed }) => [
+              styles.submitBtn,
+              !canSubmit && styles.submitBtnDisabled,
+              pressed && canSubmit && styles.submitBtnPressed,
+            ]}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Text style={styles.submitText}>Register</Text>
+            )}
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F5FAFF" },
+  keyboardAvoid: { flex: 1 },
   container: {
     flex: 1,
     paddingHorizontal: 12,

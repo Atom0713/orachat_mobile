@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -23,6 +24,7 @@ import { getLocalUser, type LocalUser } from "../src/user/userStore";
 
 export default function Index() {
   const router = useRouter();
+  const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
   const { recipientId, recipientDisplayName, conversationId: conversationIdParam } =
     useLocalSearchParams<{
@@ -228,8 +230,8 @@ export default function Index() {
           ) : null}
           <KeyboardAvoidingView
             style={styles.container}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+            behavior="padding"
+            keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
           >
             <FlatList
               style={styles.list}
