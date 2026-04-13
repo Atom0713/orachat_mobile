@@ -78,7 +78,7 @@ export default function RegisterScreen() {
 
   if (checkingUser) {
     return (
-      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <SafeAreaView style={styles.safe} edges={["bottom", "left", "right"]}>
         <Stack.Screen options={{ title: "Register" }} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0B5FFF" />
@@ -90,7 +90,7 @@ export default function RegisterScreen() {
   const canSubmit = username.trim().length > 0 && !loading;
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.safe} edges={["bottom", "left", "right"]}>
       <Stack.Screen
         options={{
           title: "Register",

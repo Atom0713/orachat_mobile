@@ -1,5 +1,8 @@
 import { Stack, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useRef, useState } from "react";
+import { Platform, StatusBar as RNStatusBar } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ensureMessagesHydrated } from "../src/chat/inMemoryMessageStore";
 import { bootstrapE2EForUser } from "../src/crypto/e2e";
@@ -7,6 +10,7 @@ import { getLocalUser } from "../src/user/userStore";
 
 export default function RootLayout() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [hasUser, setHasUser] = useState<boolean | null>(null);
   const resolved = useRef(false);
   const hasRedirected = useRef(false);
@@ -53,17 +57,35 @@ export default function RootLayout() {
     }
   }, [hasUser, router]);
 
+  const androidHeaderStatusBarHeight =
+    Platform.OS === "android"
+      ? Math.max(insets.top, RNStatusBar.currentHeight ?? 0) || 24
+      : undefined;
+
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: "#0B5FFF" },
-        headerTintColor: "#FFFFFF",
-        headerTitleStyle: { fontWeight: "700" },
-        contentStyle: { backgroundColor: "#F5FAFF" },
-        // Avoid native stack header updates while the active route still returns null (auth still resolving).
-        // Mismatch between header config and screen content caused ScreenStackFragment crashes on Android Fabric.
-        ...(hasUser === null ? { headerShown: false } : {}),
-      }}
-    />
+    <>
+      <StatusBar style="light" />
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: "#0B5FFF" },
+          headerTintColor: "#FFFFFF",
+          headerTitleStyle: { fontWeight: "700" },
+          contentStyle: { backgroundColor: "#F5FAFF" },
+          statusBarStyle: "light",
+          // Android native stack only enables header status-bar padding when either
+          // statusBarTranslucent is set or insets.top > 0; with edge-to-edge, insets.top
+          // is often 0 so the toolbar would draw under the clock/battery (see RN native-stack SceneView).
+          ...(Platform.OS === "android" && androidHeaderStatusBarHeight != null
+            ? {
+                statusBarTranslucent: true,
+                headerStatusBarHeight: androidHeaderStatusBarHeight,
+              }
+            : {}),
+          // While auth is unresolved, hide headers so no native header mounts against an empty screen (Android Fabric).
+          // After auth resolves, force the default back to visible so merges never leave headerShown stuck false.
+          ...(hasUser === null ? { headerShown: false } : { headerShown: true }),
+        }}
+      />
+    </>
   );
 }

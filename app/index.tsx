@@ -6,12 +6,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  StatusBar as RNStatusBar,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getOrCreateConversation, setConversationDisplayName } from "../src/chat/conversationStore";
 import { inMemoryMessageStore, useMessages } from "../src/chat/inMemoryMessageStore";
@@ -22,6 +23,7 @@ import { getLocalUser, type LocalUser } from "../src/user/userStore";
 
 export default function Index() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { recipientId, recipientDisplayName, conversationId: conversationIdParam } =
     useLocalSearchParams<{
       recipientId?: string;
@@ -145,6 +147,14 @@ export default function Index() {
     if (!contentReady) {
       return { headerShown: false as const };
     }
+    // Native stack toolbar often still draws under the status bar on Android edge-to-edge
+    // when using custom header actions; use an in-app bar with explicit top inset instead.
+    if (Platform.OS === "android") {
+      return {
+        headerShown: false as const,
+        statusBarStyle: "light" as const,
+      };
+    }
     return {
       headerShown: true,
       title: headerTitle || "Chat",
@@ -171,7 +181,51 @@ export default function Index() {
     <>
       <Stack.Screen options={stackOptions} />
       {contentReady ? (
-        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <SafeAreaView style={styles.safe} edges={["bottom", "left", "right"]}>
+          {Platform.OS === "android" ? (
+            <View
+              style={[
+                styles.androidHeaderWrap,
+                {
+                  paddingTop:
+                    Math.max(insets.top, RNStatusBar.currentHeight ?? 0) ||
+                    24,
+                },
+              ]}
+            >
+              <View style={styles.androidHeaderBar}>
+                <View style={styles.androidHeaderSide}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Back"
+                    onPress={() => router.back()}
+                    style={({ pressed }) => [
+                      styles.androidHeaderIconBtn,
+                      pressed && styles.headerBtnPressed,
+                    ]}
+                  >
+                    <Ionicons name="chevron-back" size={26} color="#FFFFFF" />
+                  </Pressable>
+                </View>
+                <Text style={styles.androidHeaderTitle} numberOfLines={1}>
+                  {headerTitle || "Chat"}
+                </Text>
+                <View style={[styles.androidHeaderSide, styles.androidHeaderSideEnd]}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Find users"
+                    onPress={() => router.push({ pathname: "/user-search" })}
+                    style={({ pressed }) => [
+                      styles.androidHeaderIconBtn,
+                      pressed && styles.headerBtnPressed,
+                    ]}
+                  >
+                    <Ionicons name="add" size={26} color="#FFFFFF" />
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          ) : null}
           <KeyboardAvoidingView
             style={styles.container}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -225,6 +279,35 @@ export default function Index() {
 const styles = StyleSheet.create({
   headerBtn: { padding: 8, marginRight: 4 },
   headerBtnPressed: { opacity: 0.8 },
+
+  androidHeaderWrap: {
+    backgroundColor: "#0B5FFF",
+  },
+  androidHeaderBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 56,
+    paddingHorizontal: 4,
+  },
+  androidHeaderSide: {
+    width: 48,
+    minHeight: 48,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  androidHeaderSideEnd: {
+    alignItems: "flex-end",
+  },
+  androidHeaderIconBtn: {
+    padding: 8,
+  },
+  androidHeaderTitle: {
+    flex: 1,
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "700",
+    textAlign: "center",
+  },
 
   safe: { flex: 1, backgroundColor: "#F5FAFF" },
   container: { flex: 1, backgroundColor: "#F5FAFF" },

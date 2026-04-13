@@ -77,7 +77,7 @@ export default function UserSearchScreen() {
   const hasSearched = results.length > 0 || (query.trim().length > 0 && !loading);
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+    <SafeAreaView style={styles.safe} edges={["bottom", "left", "right"]}>
       <Stack.Screen
         options={{
           title: "Find users",

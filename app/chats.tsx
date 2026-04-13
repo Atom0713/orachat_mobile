@@ -108,7 +108,14 @@ export default function ChatsScreen() {
     <>
       <Stack.Screen options={stackOptions} />
       {contentReady ? (
-        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <SafeAreaView
+          style={styles.safe}
+          edges={
+            contentReady
+              ? (["bottom", "left", "right"] as const)
+              : (["top", "bottom", "left", "right"] as const)
+          }
+        >
           {conversations.length === 0 ? (
             <View style={styles.empty}>
               <Text style={styles.emptyText}>No conversations yet</Text>
