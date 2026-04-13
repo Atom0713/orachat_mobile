@@ -84,40 +84,49 @@ export default function ChatsScreen() {
     [onSelectConversation]
   );
 
-  if (checkingUser || !user) return null;
+  const contentReady = !checkingUser && !!user;
+
+  const stackOptions = React.useMemo(() => {
+    if (!contentReady) {
+      return { headerShown: false as const };
+    }
+    return {
+      headerShown: true,
+      title: "Chats",
+      headerRight: () => (
+        <Pressable
+          onPress={() => router.push({ pathname: "/user-search" })}
+          style={({ pressed }) => [styles.headerBtn, pressed && styles.headerBtnPressed]}
+        >
+          <Ionicons name="add" size={26} color="#FFFFFF" />
+        </Pressable>
+      ),
+    };
+  }, [contentReady, router]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <Stack.Screen
-        options={{
-          title: "Chats",
-          headerRight: () => (
-            <Pressable
-              onPress={() => router.push({ pathname: "/user-search" })}
-              style={({ pressed }) => [styles.headerBtn, pressed && styles.headerBtnPressed]}
-            >
-              <Ionicons name="add" size={26} color="#FFFFFF" />
-            </Pressable>
-          ),
-        }}
-      />
-
-      {conversations.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyText}>No conversations yet</Text>
-          <Text style={styles.emptySubtext}>Tap + to find someone and start a chat</Text>
-        </View>
-      ) : (
-        <FlatList
-          style={styles.list}
-          contentContainerStyle={styles.listContent}
-          data={conversations}
-          keyExtractor={(c) => String(c.id)}
-          renderItem={renderItem}
-          keyboardDismissMode="on-drag"
-        />
-      )}
-    </SafeAreaView>
+    <>
+      <Stack.Screen options={stackOptions} />
+      {contentReady ? (
+        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+          {conversations.length === 0 ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>No conversations yet</Text>
+              <Text style={styles.emptySubtext}>Tap + to find someone and start a chat</Text>
+            </View>
+          ) : (
+            <FlatList
+              style={styles.list}
+              contentContainerStyle={styles.listContent}
+              data={conversations}
+              keyExtractor={(c) => String(c.id)}
+              renderItem={renderItem}
+              keyboardDismissMode="on-drag"
+            />
+          )}
+        </SafeAreaView>
+      ) : null}
+    </>
   );
 }
 

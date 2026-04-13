@@ -60,6 +60,9 @@ export default function RootLayout() {
         headerTintColor: "#FFFFFF",
         headerTitleStyle: { fontWeight: "700" },
         contentStyle: { backgroundColor: "#F5FAFF" },
+        // Avoid native stack header updates while the active route still returns null (auth still resolving).
+        // Mismatch between header config and screen content caused ScreenStackFragment crashes on Android Fabric.
+        ...(hasUser === null ? { headerShown: false } : {}),
       }}
     />
   );

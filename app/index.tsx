@@ -128,79 +128,97 @@ export default function Index() {
     }
   }, [loading, user, recipientId, router]);
 
-  if (loading || !user) return null;
-  if (!recipientId) return null;
-  if (conversationId == null || Number.isNaN(conversationId)) return null;
+  const contentReady =
+    !loading &&
+    !!user &&
+    !!recipientId &&
+    conversationId != null &&
+    !Number.isNaN(conversationId);
+
+  const headerTitle = React.useMemo(() => {
+    const v = recipientDisplayName;
+    if (v == null) return "Chat";
+    return Array.isArray(v) ? (v[0] ?? "Chat") : v;
+  }, [recipientDisplayName]);
+
+  const stackOptions = React.useMemo(() => {
+    if (!contentReady) {
+      return { headerShown: false as const };
+    }
+    return {
+      headerShown: true,
+      title: headerTitle || "Chat",
+      headerLeft: () => (
+        <Pressable
+          onPress={() => router.back()}
+          style={({ pressed }) => [styles.headerBtn, pressed && styles.headerBtnPressed]}
+        >
+          <Ionicons name="chevron-back" size={26} color="#FFFFFF" />
+        </Pressable>
+      ),
+      headerRight: () => (
+        <Pressable
+          onPress={() => router.push({ pathname: "/user-search" })}
+          style={({ pressed }) => [styles.headerBtn, pressed && styles.headerBtnPressed]}
+        >
+          <Ionicons name="add" size={26} color="#FFFFFF" />
+        </Pressable>
+      ),
+    };
+  }, [contentReady, headerTitle, router]);
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <Stack.Screen
-        options={{
-          title: recipientDisplayName ?? "Chat",
-          headerLeft: () => (
-            <Pressable
-              onPress={() => router.back()}
-              style={({ pressed }) => [styles.headerBtn, pressed && styles.headerBtnPressed]}
-            >
-              <Ionicons name="chevron-back" size={26} color="#FFFFFF" />
-            </Pressable>
-          ),
-          headerRight: () => (
-            <Pressable
-              onPress={() => router.push({ pathname: "/user-search" })}
-              style={({ pressed }) => [styles.headerBtn, pressed && styles.headerBtnPressed]}
-            >
-              <Ionicons name="add" size={26} color="#FFFFFF" />
-            </Pressable>
-          ),
-        }}
-      />
-
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
-      >
-        <FlatList
-          style={styles.list}
-          contentContainerStyle={styles.listContent}
-          data={data}
-          keyExtractor={(m) => m.id}
-          renderItem={renderItem}
-          inverted
-          keyboardDismissMode="interactive"
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        />
-
-        <View style={styles.composer}>
-          <TextInput
-            value={draft}
-            onChangeText={setDraft}
-            placeholder="Message…"
-            placeholderTextColor="#6B7A90"
-            style={styles.input}
-            multiline
-            returnKeyType="send"
-            onSubmitEditing={() => void onSend()}
-            blurOnSubmit={false}
-          />
-
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => void onSend()}
-            disabled={!canSend}
-            style={({ pressed }) => [
-              styles.send,
-              !canSend && styles.sendDisabled,
-              pressed && canSend && styles.sendPressed,
-            ]}
+    <>
+      <Stack.Screen options={stackOptions} />
+      {contentReady ? (
+        <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+          <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
           >
-            <Text style={styles.sendText}>Send</Text>
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+            <FlatList
+              style={styles.list}
+              contentContainerStyle={styles.listContent}
+              data={data}
+              keyExtractor={(m) => m.id}
+              renderItem={renderItem}
+              inverted
+              keyboardDismissMode="interactive"
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            />
+
+            <View style={styles.composer}>
+              <TextInput
+                value={draft}
+                onChangeText={setDraft}
+                placeholder="Message…"
+                placeholderTextColor="#6B7A90"
+                style={styles.input}
+                multiline
+                returnKeyType="send"
+                onSubmitEditing={() => void onSend()}
+                blurOnSubmit={false}
+              />
+
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void onSend()}
+                disabled={!canSend}
+                style={({ pressed }) => [
+                  styles.send,
+                  !canSend && styles.sendDisabled,
+                  pressed && canSend && styles.sendPressed,
+                ]}
+              >
+                <Text style={styles.sendText}>Send</Text>
+              </Pressable>
+            </View>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      ) : null}
+    </>
   );
 }
 
