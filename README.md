@@ -39,7 +39,15 @@ To learn more about developing your project with Expo, look at the following res
 - [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
 
 
-## Releas
+## Build
+### 1. Generate native project
+
+```bash
+cd /Users/artemsliusarenko/Developer/orachat_workspace/orachat_mobile
+EXPO_PUBLIC_ORACHAT_API_URL="https://your-api-host" npx expo prebuild --platform android --clean
+```
+
+## Release
 ### 1. Change app version in the `app.json`
 ### 1. Build bundle
 ```bash
