@@ -81,9 +81,6 @@ export default function RootLayout() {
                 headerStatusBarHeight: androidHeaderStatusBarHeight,
               }
             : {}),
-          // While auth is unresolved, hide headers so no native header mounts against an empty screen (Android Fabric).
-          // After auth resolves, force the default back to visible so merges never leave headerShown stuck false.
-          ...(hasUser === null ? { headerShown: false } : { headerShown: true }),
         }}
       />
     </>
