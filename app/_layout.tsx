@@ -57,6 +57,14 @@ export default function RootLayout() {
     }
   }, [hasUser, router]);
 
+  // Do not render the Stack until auth is resolved. Rendering it before we know
+  // the target route causes Fabric to mount screens into the stack before the
+  // correct route is ready, producing "ScreenStackFragment added into a
+  // non-stack container" on fast real devices.
+  if (hasUser === null) {
+    return <StatusBar style="light" />;
+  }
+
   const androidHeaderStatusBarHeight =
     Platform.OS === "android"
       ? Math.max(insets.top, RNStatusBar.currentHeight ?? 0) || 24
@@ -72,9 +80,6 @@ export default function RootLayout() {
           headerTitleStyle: { fontWeight: "700" },
           contentStyle: { backgroundColor: "#F5FAFF" },
           statusBarStyle: "light",
-          // Android native stack only enables header status-bar padding when either
-          // statusBarTranslucent is set or insets.top > 0; with edge-to-edge, insets.top
-          // is often 0 so the toolbar would draw under the clock/battery (see RN native-stack SceneView).
           ...(Platform.OS === "android" && androidHeaderStatusBarHeight != null
             ? {
                 statusBarTranslucent: true,
