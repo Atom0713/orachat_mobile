@@ -145,12 +145,8 @@ export default function Index() {
     return Array.isArray(v) ? (v[0] ?? "Chat") : v;
   }, [recipientDisplayName]);
 
+  // Keep headerShown stable per platform — never toggle it when contentReady flips (Fabric race with root Stack screenOptions).
   const stackOptions = React.useMemo(() => {
-    if (!contentReady) {
-      return { headerShown: false as const };
-    }
-    // Native stack toolbar often still draws under the status bar on Android edge-to-edge
-    // when using custom header actions; use an in-app bar with explicit top inset instead.
     if (Platform.OS === "android") {
       return {
         headerShown: false as const,
@@ -159,7 +155,7 @@ export default function Index() {
     }
     return {
       headerShown: true,
-      title: headerTitle || "Chat",
+      title: contentReady ? headerTitle || "Chat" : "Chat",
       headerLeft: () => (
         <Pressable
           onPress={() => router.back()}
