@@ -48,13 +48,18 @@ EXPO_PUBLIC_ORACHAT_API_URL="https://your-api-host" npx expo prebuild --platform
 ```
 
 ## Release
-### 1. Change app version in the `app.json`
-### 1. Build bundle
+
+### Google Play
+#### 1. Change app version in the `app.json`
+#### 2. Change app version in the `android/app/build.gradle`
+#### 3. Build bundle
 ```bash
 cd /Users/artemsliusarenko/Developer/orachat_workspace/orachat_mobile/android
 EXPO_PUBLIC_ORACHAT_API_URL="<backedn url>" ./gradlew bundleRelease
 ```
-### Upload '.jks' debugging
+#### 4. Upload `.aab` file to Google Play console.
+#### Debugging
+##### Upload '.jks' debugging
 ```bash
 keytool -list -v -keystore app/upload-keystore.jks
 ```
