@@ -2,14 +2,17 @@
   "expo": {
     "name": "orachat_mobile",
     "slug": "orachat_mobile",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "orachatmobile",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIViewControllerBasedStatusBarAppearance": true
+      }
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
@@ -22,7 +25,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "dev.orachat.mobile",
-      "versionCode": 5
+      "versionCode": 6
     },
     "web": {
       "output": "static",

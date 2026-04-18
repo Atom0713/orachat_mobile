@@ -24,11 +24,6 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
   if (db) return db;
   const database = await SQLite.openDatabaseAsync(DB_NAME);
   await database.execAsync("PRAGMA journal_mode = WAL;");
-
-  await database.execAsync(`DROP TABLE IF EXISTS messages;`);
-  await database.execAsync(`DROP TABLE IF EXISTS conversations;`);
-  await database.execAsync(`DROP TABLE IF EXISTS user;`);
-
   
   await database.execAsync(`
     CREATE TABLE IF NOT EXISTS messages (

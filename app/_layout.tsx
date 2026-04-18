@@ -79,11 +79,18 @@ export default function RootLayout() {
           headerTintColor: "#FFFFFF",
           headerTitleStyle: { fontWeight: "700" },
           contentStyle: { backgroundColor: "#F5FAFF" },
-          statusBarStyle: "light",
-          ...(Platform.OS === "android" && androidHeaderStatusBarHeight != null
+          // iOS: do not set statusBarStyle here — RN Screens calls native APIs that
+          // require UIViewControllerBasedStatusBarAppearance (false in Expo Go).
+          // Use <StatusBar /> above instead. Android keeps native stack status bar.
+          ...(Platform.OS === "android"
             ? {
-                statusBarTranslucent: true,
-                headerStatusBarHeight: androidHeaderStatusBarHeight,
+                statusBarStyle: "light",
+                ...(androidHeaderStatusBarHeight != null
+                  ? {
+                      statusBarTranslucent: true,
+                      headerStatusBarHeight: androidHeaderStatusBarHeight,
+                    }
+                  : {}),
               }
             : {}),
         }}
