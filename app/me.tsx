@@ -1,27 +1,22 @@
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Platform, StatusBar as RNStatusBar, StyleSheet } from "react-native";
+import { Platform, Pressable, StatusBar as RNStatusBar, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { LocalUser } from "../src/user/userStore";
 import { getLocalUser } from "../src/user/userStore";
 
 export default function MeScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [user, setUser] = useState<LocalUser | null>(null);
   const [checkingUser, setCheckingUser] = useState(true);
 
   useEffect(() => {
-    const goRegister = () => router.replace("/register" as never);
     getLocalUser()
-      .then((u) => {
-        if (!u) goRegister();
-        else setUser(u);
-      })
-      .catch(goRegister)
+      .then((u) => setUser(u))
+      .catch(() => setUser(null))
       .finally(() => setCheckingUser(false));
-  }, [router]);
+  }, []);
 
   const androidHeaderStatusBarHeight =
     Platform.OS === "android"
@@ -44,7 +39,11 @@ export default function MeScreen() {
       };
     }
     if (!user) {
-      return { headerShown: false as const };
+      return {
+        headerShown: true as const,
+        title: "Me",
+        ...androidExtras,
+      };
     }
     return {
       headerShown: true as const,
@@ -56,13 +55,38 @@ export default function MeScreen() {
   return (
     <>
       <Stack.Screen options={stackOptions} />
-      {(checkingUser || user) && (
-        <SafeAreaView style={styles.safe} edges={["bottom", "left", "right"]} />
-      )}
+      <SafeAreaView style={styles.safe} edges={["bottom", "left", "right"]}>
+        {user && !checkingUser ? (
+          <View style={styles.container}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Generate invite code"
+              onPress={() => {}}
+              style={({ pressed }) => [styles.inviteBtn, pressed && styles.inviteBtnPressed]}
+            >
+              <Text style={styles.inviteBtnText}>Generate invite code</Text>
+            </Pressable>
+          </View>
+        ) : null}
+      </SafeAreaView>
     </>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F5FAFF" },
+  container: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingTop: 24,
+  },
+  inviteBtn: {
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: "#0B5FFF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  inviteBtnPressed: { opacity: 0.9 },
+  inviteBtnText: { color: "#FFFFFF", fontWeight: "700", fontSize: 16 },
 });
