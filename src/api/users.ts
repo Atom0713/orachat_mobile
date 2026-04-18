@@ -1,4 +1,5 @@
 import { getBaseUrl } from "./config";
+import { postJson } from "./postJson";
 
 export type SearchUser = {
   id: string;
@@ -10,6 +11,7 @@ export type SearchUser = {
 export type RegisterRequest = {
   username: string;
   display_name?: string | null;
+  invite_code: string;
 };
 
 export type RegisterResponse = {
@@ -17,7 +19,7 @@ export type RegisterResponse = {
   username: string;
   display_name: string | null;
   created_at: string;
-  updated_at: string;
+  updated_at: string | null;
 };
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -33,33 +35,13 @@ async function fetchJson<T>(url: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-async function fetchJsonPost<T>(url: string, body: unknown): Promise<T> {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    const message =
-      res.status === 409 ? "Username already taken" : `HTTP ${res.status} ${res.statusText}${text ? `: ${text}` : ""}`;
-    throw new Error(message);
-  }
-
-  return (await res.json()) as T;
-}
-
 /**
  * Register a new user. POST /users/register.
  * Throws on non-2xx (e.g. 409 "Username already taken").
  */
 export async function registerUser(body: RegisterRequest): Promise<RegisterResponse> {
   const baseUrl = getBaseUrl();
-  return fetchJsonPost<RegisterResponse>(`${baseUrl}/users/register`, body);
+  return postJson<RegisterResponse>(`${baseUrl}/users/register`, body);
 }
 
 /**

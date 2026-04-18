@@ -3,6 +3,7 @@ import { Stack, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -33,6 +34,7 @@ export default function RegisterScreen() {
   const router = useRouter();
   const headerHeight = useHeaderHeight();
   const [username, setUsername] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkingUser, setCheckingUser] = useState(true);
@@ -56,21 +58,28 @@ export default function RegisterScreen() {
     setError(null);
     setLoading(true);
     const normalizedUsername = displayName.toLowerCase();
+    const trimmedInvite = inviteCode.trim();
+    if (!trimmedInvite) {
+      setError("Invite code is required");
+      return;
+    }
     try {
       const res = await registerUser({
         username: normalizedUsername,
         display_name: displayName,
+        invite_code: trimmedInvite,
       });
       await setLocalUser({
         id: res.id,
         username: res.username,
         display_name: res.display_name ?? displayName,
       });
+      let keyWarning: string | null = null;
       try {
         await bootstrapE2EForUser(res.id);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Key publish failed");
-        console.warn("[e2e] key publish failed", e);
+        keyWarning = e instanceof Error ? e.message : "Key publish failed";
+        Alert.alert("Key publish failed", keyWarning);
       }
       router.replace("/");
     } catch (err) {
@@ -78,7 +87,7 @@ export default function RegisterScreen() {
     } finally {
       setLoading(false);
     }
-  }, [username, router]);
+  }, [username, inviteCode, router]);
 
   if (checkingUser) {
     return (
@@ -91,7 +100,7 @@ export default function RegisterScreen() {
     );
   }
 
-  const canSubmit = username.trim().length > 0 && !loading;
+  const canSubmit = username.trim().length > 0 && inviteCode.trim().length > 0 && !loading;
 
   return (
     <SafeAreaView style={styles.safe} edges={["bottom", "left", "right"]}>
@@ -116,6 +125,23 @@ export default function RegisterScreen() {
               setError(null);
             }}
             placeholder="e.g. alice_dev"
+            placeholderTextColor="#6B7A90"
+            style={styles.input}
+            returnKeyType="next"
+            onSubmitEditing={() => void onSubmit()}
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!loading}
+          />
+
+          <Text style={[styles.label, styles.labelSpacing]}>Invite code</Text>
+          <TextInput
+            value={inviteCode}
+            onChangeText={(t) => {
+              setInviteCode(t);
+              setError(null);
+            }}
+            placeholder="Paste your invite"
             placeholderTextColor="#6B7A90"
             style={styles.input}
             returnKeyType="done"
@@ -171,6 +197,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 8,
+  },
+  labelSpacing: {
+    marginTop: 16,
   },
   input: {
     height: 48,

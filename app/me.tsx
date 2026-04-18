@@ -1,8 +1,18 @@
 import { Stack } from "expo-router";
-import React, { useEffect, useState } from "react";
-import { Platform, Pressable, StatusBar as RNStatusBar, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  StatusBar as RNStatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { createInvite } from "../src/api/invites";
 import type { LocalUser } from "../src/user/userStore";
 import { getLocalUser } from "../src/user/userStore";
 
@@ -10,6 +20,21 @@ export default function MeScreen() {
   const insets = useSafeAreaInsets();
   const [user, setUser] = useState<LocalUser | null>(null);
   const [checkingUser, setCheckingUser] = useState(true);
+  const [inviteLoading, setInviteLoading] = useState(false);
+
+  const onGenerateInvite = useCallback(async () => {
+    if (!user) return;
+    setInviteLoading(true);
+    try {
+      const inv = await createInvite({ created_by: user.id });
+      const expiresLabel = new Date(inv.expires_at).toLocaleString();
+      Alert.alert("Invite code", `${inv.code}\n\nExpires: ${expiresLabel}`);
+    } catch (e) {
+      Alert.alert("Could not create invite", e instanceof Error ? e.message : "Unknown error");
+    } finally {
+      setInviteLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     getLocalUser()
@@ -61,10 +86,19 @@ export default function MeScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Generate invite code"
-              onPress={() => {}}
-              style={({ pressed }) => [styles.inviteBtn, pressed && styles.inviteBtnPressed]}
+              onPress={() => void onGenerateInvite()}
+              disabled={inviteLoading}
+              style={({ pressed }) => [
+                styles.inviteBtn,
+                inviteLoading && styles.inviteBtnDisabled,
+                pressed && !inviteLoading && styles.inviteBtnPressed,
+              ]}
             >
-              <Text style={styles.inviteBtnText}>Generate invite code</Text>
+              {inviteLoading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.inviteBtnText}>Generate invite code</Text>
+              )}
             </Pressable>
           </View>
         ) : null}
@@ -88,5 +122,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   inviteBtnPressed: { opacity: 0.9 },
+  inviteBtnDisabled: { opacity: 0.65 },
   inviteBtnText: { color: "#FFFFFF", fontWeight: "700", fontSize: 16 },
 });
