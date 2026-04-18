@@ -93,6 +93,14 @@ export default function ChatsScreen() {
     return {
       headerShown: true,
       title: "Chats",
+      headerLeft: () => (
+        <Pressable
+          onPress={() => router.push({ pathname: "/me" } as never)}
+          style={({ pressed }) => [styles.headerBtnLeft, pressed && styles.headerBtnPressed]}
+        >
+          <Ionicons name="person-circle-outline" size={26} color="#FFFFFF" />
+        </Pressable>
+      ),
       headerRight: () => (
         <Pressable
           onPress={() => router.push({ pathname: "/user-search" })}
@@ -139,6 +147,7 @@ export default function ChatsScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F5FAFF" },
+  headerBtnLeft: { padding: 8, marginLeft: 4 },
   headerBtn: { padding: 8, marginRight: 4 },
   headerBtnPressed: { opacity: 0.8 },
 
