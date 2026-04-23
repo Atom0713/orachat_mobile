@@ -12,7 +12,9 @@
       "supportsTablet": true,
       "infoPlist": {
         "UIViewControllerBasedStatusBarAppearance": true
-      }
+      },
+      "bundleIdentifier": "dev.orachat.mobile",
+      "deploymentTarget": "18.0"
     },
     "android": {
       "softwareKeyboardLayoutMode": "resize",
