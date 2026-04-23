@@ -55,7 +55,7 @@ EXPO_PUBLIC_ORACHAT_API_URL="https://your-api-host" npx expo prebuild --platform
 #### 3. Build bundle
 ```bash
 cd /Users/artemsliusarenko/Developer/orachat_workspace/orachat_mobile/android
-EXPO_PUBLIC_ORACHAT_API_URL="<backedn url>" ./gradlew bundleRelease
+EXPO_PUBLIC_ORACHAT_API_URL="<backend url>" ./gradlew bundleRelease
 ```
 #### 4. Upload `.aab` file to Google Play console.
 #### Debugging
@@ -63,3 +63,28 @@ EXPO_PUBLIC_ORACHAT_API_URL="<backedn url>" ./gradlew bundleRelease
 ```bash
 keytool -list -v -keystore app/upload-keystore.jks
 ```
+
+### IOS
+
+#### 1. Prebuild
+```bash
+EXPO_PUBLIC_ORACHAT_API_URL="<backend url>" npx expo prebuild --platform ios --clean
+```
+#### 2. cd ios && pod install && cd .
+#### 3. Open project in XCode
+```bash
+open ios/*.xcworkspace
+```
+#### 4. Signing & Capabilities
+- Ensure a Team is selected
+- Check "Automatically manage signing"
+
+#### 5. Build and Archive
+- Set Destination: In the top menu bar, set the target device to Any iOS Device (arm64).
+- Scheme: Go to Product > Scheme > Edit Scheme and ensure the Build Configuration is set to Release.
+- Archive: Go to Product > Archive. Xcode will compile your app and bundle the JavaScript locally.
+
+#### 6. Distribute to App Store/TestFlight 
+- Distribute App: Click the Distribute App button.
+- Method: Select App Store Connect and then Upload.
+- Final Steps: Follow the prompts to upload the build to App Store Connect. Once uploaded, you can manage the build for TestFlight or final App Store review through your App Store Connect dashboard
