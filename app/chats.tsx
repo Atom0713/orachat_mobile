@@ -17,7 +17,7 @@ import { useInboxPolling } from "../src/chat/useInboxPolling";
 import { Theme } from "../src/theme/colors";
 import { getLocalUser } from "../src/user/userStore";
 
-function ListTopHairline() {
+function ListSeparator() {
   return <View style={styles.listEdgeHairline} />;
 }
 
@@ -113,7 +113,9 @@ export default function ChatsScreen() {
               data={conversations}
               keyExtractor={(c) => String(c.id)}
               renderItem={renderItem}
-              ListHeaderComponent={ListTopHairline}
+              ListHeaderComponent={ListSeparator}
+              ListFooterComponent={ListSeparator}
+              ItemSeparatorComponent={ListSeparator}
               keyboardDismissMode="on-drag"
             />
           )}

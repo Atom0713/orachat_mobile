@@ -76,8 +76,6 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.screenBackground,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Theme.hairlineBorder,
   },
   rowPressed: { backgroundColor: Theme.listRowPressed },
   body: { flex: 1, minWidth: 0 },
