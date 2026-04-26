@@ -68,9 +68,9 @@ keytool -list -v -keystore app/upload-keystore.jks
 
 #### 1. Prebuild
 ```bash
-EXPO_PUBLIC_ORACHAT_API_URL="<backend url>" npx expo prebuild --platform ios --clean
+npx expo prebuild --platform ios --clean
 ```
-#### 2. cd ios && pod install && cd .
+#### 2.  ```cd ios && pod install && cd ..```
 #### 3. Open project in XCode
 ```bash
 open ios/*.xcworkspace
@@ -81,7 +81,7 @@ open ios/*.xcworkspace
 
 #### 5. Build and Archive
 - Set Destination: In the top menu bar, set the target device to Any iOS Device (arm64).
-- Scheme: Go to Product > Scheme > Edit Scheme and ensure the Build Configuration is set to Release.
+- Scheme: Go to Product > Scheme > Edit Scheme and ensure the Archive > Build Configuration is set to Release.
 - Archive: Go to Product > Archive. Xcode will compile your app and bundle the JavaScript locally.
 
 #### 6. Distribute to App Store/TestFlight 
