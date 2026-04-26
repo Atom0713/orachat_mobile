@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ensureMessagesHydrated } from "../src/chat/inMemoryMessageStore";
 import { bootstrapE2EForUser } from "../src/crypto/e2e";
+import { Theme } from "../src/theme/colors";
 import { getLocalUser } from "../src/user/userStore";
 
 export default function RootLayout() {
@@ -62,7 +63,7 @@ export default function RootLayout() {
   // correct route is ready, producing "ScreenStackFragment added into a
   // non-stack container" on fast real devices.
   if (hasUser === null) {
-    return <StatusBar style="light" />;
+    return <StatusBar style="dark" />;
   }
 
   const androidHeaderStatusBarHeight =
@@ -72,24 +73,22 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: "#0B5FFF" },
-          headerTintColor: "#FFFFFF",
-          headerTitleStyle: { fontWeight: "700" },
-          contentStyle: { backgroundColor: "#F5FAFF" },
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: Theme.screenBackground },
+          headerTintColor: "#000000",
+          headerTitleStyle: { fontWeight: "600", color: "#000000" },
+          contentStyle: { backgroundColor: Theme.screenBackground },
           // iOS: do not set statusBarStyle here — RN Screens calls native APIs that
           // require UIViewControllerBasedStatusBarAppearance (false in Expo Go).
           // Use <StatusBar /> above instead. Android keeps native stack status bar.
           ...(Platform.OS === "android"
             ? {
-                statusBarStyle: "light",
+                statusBarStyle: "dark",
                 ...(androidHeaderStatusBarHeight != null
-                  ? {
-                      statusBarTranslucent: true,
-                      headerStatusBarHeight: androidHeaderStatusBarHeight,
-                    }
+                  ? { headerStatusBarHeight: androidHeaderStatusBarHeight }
                   : {}),
               }
             : {}),

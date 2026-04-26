@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { registerUser } from "../src/api/users";
 import { bootstrapE2EForUser } from "../src/crypto/e2e";
+import { Theme } from "../src/theme/colors";
 import { getLocalUser, setLocalUser } from "../src/user/userStore";
 
 const USERNAME_MIN_LEN = 3;
@@ -94,7 +95,7 @@ export default function RegisterScreen() {
       <SafeAreaView style={styles.safe} edges={["bottom", "left", "right"]}>
         <Stack.Screen options={{ title: "Register" }} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0B5FFF" />
+          <ActivityIndicator size="large" color={Theme.sendButton} />
         </View>
       </SafeAreaView>
     );
@@ -125,7 +126,7 @@ export default function RegisterScreen() {
               setError(null);
             }}
             placeholder="e.g. alice_dev"
-            placeholderTextColor="#6B7A90"
+            placeholderTextColor={Theme.secondaryText}
             style={styles.input}
             returnKeyType="next"
             onSubmitEditing={() => void onSubmit()}
@@ -142,7 +143,7 @@ export default function RegisterScreen() {
               setError(null);
             }}
             placeholder="Paste your invite"
-            placeholderTextColor="#6B7A90"
+            placeholderTextColor={Theme.secondaryText}
             style={styles.input}
             returnKeyType="done"
             onSubmitEditing={() => void onSubmit()}
@@ -180,7 +181,7 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#F5FAFF" },
+  safe: { flex: 1, backgroundColor: Theme.screenBackground },
   keyboardAvoid: { flex: 1 },
   container: {
     flex: 1,
@@ -193,7 +194,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   label: {
-    color: "#102A43",
+    color: Theme.primaryText,
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 8,
@@ -206,10 +207,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: "rgba(11, 95, 255, 0.18)",
+    borderColor: Theme.inputBorder,
     borderRadius: 14,
-    color: "#102A43",
-    backgroundColor: "#F8FBFF",
+    color: Theme.primaryText,
+    backgroundColor: Theme.inputBackground,
     fontSize: 16,
   },
   errorBox: {
@@ -225,11 +226,11 @@ const styles = StyleSheet.create({
     marginTop: 24,
     height: 48,
     borderRadius: 14,
-    backgroundColor: "#0B5FFF",
+    backgroundColor: Theme.sendButton,
     justifyContent: "center",
     alignItems: "center",
   },
   submitBtnPressed: { opacity: 0.9 },
-  submitBtnDisabled: { backgroundColor: "rgba(11, 95, 255, 0.45)" },
+  submitBtnDisabled: { backgroundColor: Theme.sendDisabled },
   submitText: { color: "#FFFFFF", fontWeight: "700", fontSize: 16 },
 });

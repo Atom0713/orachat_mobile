@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { searchUsers, type SearchUser } from "../src/api/users";
 import { getOrCreateConversation, setConversationDisplayName } from "../src/chat/conversationStore";
+import { Theme } from "../src/theme/colors";
 
 export default function UserSearchScreen() {
   const router = useRouter();
@@ -103,7 +104,7 @@ export default function UserSearchScreen() {
                 setError(null);
               }}
               placeholder="Search by name or username…"
-              placeholderTextColor="#6B7A90"
+              placeholderTextColor={Theme.secondaryText}
               style={styles.input}
               returnKeyType="search"
               onSubmitEditing={() => void onSearch()}
@@ -156,7 +157,7 @@ export default function UserSearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#F5FAFF" },
+  safe: { flex: 1, backgroundColor: Theme.screenBackground },
   keyboardAvoid: { flex: 1 },
   container: { flex: 1 },
 
@@ -166,7 +167,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(11, 95, 255, 0.12)",
+    borderBottomColor: Theme.hairlineBorder,
     backgroundColor: "#FFFFFF",
   },
   input: {
@@ -175,22 +176,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: "rgba(11, 95, 255, 0.18)",
+    borderColor: Theme.inputBorder,
     borderRadius: 14,
-    color: "#102A43",
-    backgroundColor: "#F8FBFF",
+    color: Theme.primaryText,
+    backgroundColor: Theme.inputBackground,
     fontSize: 16,
   },
   searchBtn: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: "#0B5FFF",
+    backgroundColor: Theme.sendButton,
     justifyContent: "center",
     alignItems: "center",
   },
   searchBtnPressed: { opacity: 0.9 },
-  searchBtnDisabled: { backgroundColor: "rgba(11, 95, 255, 0.45)" },
+  searchBtnDisabled: { backgroundColor: Theme.sendDisabled },
 
   errorBox: {
     marginHorizontal: 12,
@@ -204,7 +205,7 @@ const styles = StyleSheet.create({
   errorText: { color: "#C41E3A", fontSize: 14 },
 
   emptyBox: { padding: 24, alignItems: "center" },
-  emptyText: { color: "#6B7A90", fontSize: 16 },
+  emptyText: { color: Theme.secondaryText, fontSize: 16 },
 
   list: { flex: 1 },
   listContent: { paddingHorizontal: 12, paddingVertical: 12 },
@@ -216,9 +217,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: "rgba(11, 95, 255, 0.18)",
+    borderColor: Theme.inputBorder,
   },
   resultRowPressed: { opacity: 0.8 },
-  resultText: { color: "#102A43", fontSize: 16, fontWeight: "600" },
-  resultSubtext: { color: "#6B7A90", fontSize: 14, marginTop: 2 },
+  resultText: { color: Theme.primaryText, fontSize: 16, fontWeight: "600" },
+  resultSubtext: { color: Theme.secondaryText, fontSize: 14, marginTop: 2 },
 });

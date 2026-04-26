@@ -20,6 +20,7 @@ import { inMemoryMessageStore, useMessages } from "../src/chat/inMemoryMessageSt
 import { createPollingTransport } from "../src/chat/transport";
 import type { ChatMessage } from "../src/chat/types";
 import { useChatPolling } from "../src/chat/useChatPolling";
+import { Theme } from "../src/theme/colors";
 import { getLocalUser, type LocalUser } from "../src/user/userStore";
 
 export default function Index() {
@@ -147,21 +148,30 @@ export default function Index() {
 
   // Keep headerShown stable per platform — never toggle it when contentReady flips (Fabric race with root Stack screenOptions).
   const stackOptions = React.useMemo(() => {
+    const chatSurface = { contentStyle: { backgroundColor: Theme.chatWallpaper } };
+    const chatHeader = {
+      headerStyle: { backgroundColor: Theme.chatWallpaper },
+      headerTintColor: "#000000" as const,
+      headerTitleStyle: { fontWeight: "600" as const, color: "#000000" as const },
+    };
     if (Platform.OS === "android") {
       return {
         headerShown: false as const,
-        statusBarStyle: "light" as const,
+        statusBarStyle: "dark" as const,
+        ...chatSurface,
       };
     }
     return {
       headerShown: true,
+      headerShadowVisible: false,
       title: contentReady ? headerTitle || "Chat" : "Chat",
+      ...chatHeader,
       headerLeft: () => (
         <Pressable
           onPress={() => router.back()}
           style={({ pressed }) => [styles.headerBtn, pressed && styles.headerBtnPressed]}
         >
-          <Ionicons name="chevron-back" size={26} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={26} color="#000000" />
         </Pressable>
       ),
       headerRight: () => (
@@ -169,9 +179,10 @@ export default function Index() {
           onPress={() => router.push({ pathname: "/user-search" })}
           style={({ pressed }) => [styles.headerBtn, pressed && styles.headerBtnPressed]}
         >
-          <Ionicons name="add" size={26} color="#FFFFFF" />
+          <Ionicons name="add" size={26} color="#000000" />
         </Pressable>
       ),
+      ...chatSurface,
     };
   }, [contentReady, headerTitle, router]);
 
@@ -202,7 +213,7 @@ export default function Index() {
                       pressed && styles.headerBtnPressed,
                     ]}
                   >
-                    <Ionicons name="chevron-back" size={26} color="#FFFFFF" />
+                    <Ionicons name="chevron-back" size={26} color="#000000" />
                   </Pressable>
                 </View>
                 <Text style={styles.androidHeaderTitle} numberOfLines={1}>
@@ -218,7 +229,7 @@ export default function Index() {
                       pressed && styles.headerBtnPressed,
                     ]}
                   >
-                    <Ionicons name="add" size={26} color="#FFFFFF" />
+                    <Ionicons name="add" size={26} color="#000000" />
                   </Pressable>
                 </View>
               </View>
@@ -246,7 +257,7 @@ export default function Index() {
                 value={draft}
                 onChangeText={setDraft}
                 placeholder="Message…"
-                placeholderTextColor="#6B7A90"
+                placeholderTextColor={Theme.secondaryText}
                 style={styles.input}
                 multiline
                 returnKeyType="send"
@@ -279,7 +290,7 @@ const styles = StyleSheet.create({
   headerBtnPressed: { opacity: 0.8 },
 
   androidHeaderWrap: {
-    backgroundColor: "#0B5FFF",
+    backgroundColor: Theme.chatWallpaper,
   },
   androidHeaderBar: {
     flexDirection: "row",
@@ -301,14 +312,14 @@ const styles = StyleSheet.create({
   },
   androidHeaderTitle: {
     flex: 1,
-    color: "#FFFFFF",
+    color: "#000000",
     fontSize: 18,
     fontWeight: "700",
     textAlign: "center",
   },
 
-  safe: { flex: 1, backgroundColor: "#F5FAFF" },
-  container: { flex: 1, backgroundColor: "#F5FAFF" },
+  safe: { flex: 1, backgroundColor: Theme.chatWallpaper },
+  container: { flex: 1, backgroundColor: Theme.chatWallpaper },
   list: { flex: 1 },
   listContent: { paddingHorizontal: 12, paddingVertical: 12 },
 
@@ -323,24 +334,24 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   bubbleIn: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: Theme.bubbleIncoming,
     borderWidth: 1,
-    borderColor: "rgba(11, 95, 255, 0.18)",
+    borderColor: Theme.bubbleIncomingBorder,
   },
-  bubbleOut: { backgroundColor: "#0B5FFF" },
+  bubbleOut: { backgroundColor: Theme.bubbleOutgoing },
 
   bubbleText: { fontSize: 16, lineHeight: 20 },
-  bubbleTextIn: { color: "#102A43" },
-  bubbleTextOut: { color: "#FFFFFF" },
+  bubbleTextIn: { color: Theme.primaryText },
+  bubbleTextOut: { color: Theme.primaryText },
 
   composer: {
     flexDirection: "row",
     gap: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(11, 95, 255, 0.12)",
-    backgroundColor: "#FFFFFF",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Theme.hairlineBorder,
+    backgroundColor: Theme.chatWallpaper,
   },
   input: {
     flex: 1,
@@ -349,20 +360,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: "rgba(11, 95, 255, 0.18)",
+    borderColor: Theme.inputBorder,
     borderRadius: 14,
-    color: "#102A43",
-    backgroundColor: "#F8FBFF",
+    color: Theme.primaryText,
+    backgroundColor: Theme.inputBackground,
   },
   send: {
     alignSelf: "flex-end",
     height: 44,
     paddingHorizontal: 14,
     borderRadius: 14,
-    backgroundColor: "#0B5FFF",
+    backgroundColor: Theme.sendButton,
     justifyContent: "center",
   },
   sendPressed: { opacity: 0.9 },
-  sendDisabled: { backgroundColor: "rgba(11, 95, 255, 0.45)" },
+  sendDisabled: { backgroundColor: Theme.sendDisabled },
   sendText: { color: "#FFFFFF", fontWeight: "700", fontSize: 16 },
 });

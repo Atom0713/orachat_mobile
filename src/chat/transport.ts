@@ -93,7 +93,6 @@ export function createPollingTransport(config: OrachatTransportConfig): ChatTran
       };
 
       try {
-        console.log("[chat] POST", `${baseUrl}/messages/send`);
         const created = await fetchJson<OrachatApiMessage>(`${baseUrl}/messages/send`, {
           method: "POST",
           body: JSON.stringify(body),

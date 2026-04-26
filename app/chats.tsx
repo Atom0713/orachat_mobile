@@ -10,20 +10,16 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { ConversationListRow } from "../src/chat/ConversationListRow";
+import type { ConversationWithLastMessage } from "../src/chat/conversationStore";
 import { useConversations } from "../src/chat/useConversations";
 import { useInboxPolling } from "../src/chat/useInboxPolling";
-import type { ConversationWithLastMessage } from "../src/chat/conversationStore";
+import { Theme } from "../src/theme/colors";
 import { getLocalUser } from "../src/user/userStore";
 
-const formatTime = (timestamp: number | string | null) => {
-  if (timestamp == null) return "";
-  const d = typeof timestamp === "string" ? new Date(timestamp) : new Date(timestamp);
-  const now = new Date();
-  if (d.toDateString() === now.toDateString()) {
-    return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  }
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-};
+function ListTopHairline() {
+  return <View style={styles.listEdgeHairline} />;
+}
 
 export default function ChatsScreen() {
   const router = useRouter();
@@ -59,28 +55,9 @@ export default function ChatsScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: ConversationWithLastMessage }) => {
-      const displayName = item.display_name ?? item.peer_id;
-      const timeStr = formatTime(item.lastMessageAt ?? item.created_at);
-
-      return (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => onSelectConversation(item)}
-          style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-        >
-          <View style={styles.rowMain}>
-            <View style={styles.titleRow}>
-              <Text style={styles.rowTitle} numberOfLines={1}>
-                {displayName}
-              </Text>
-              {item.hasUnread ? <View style={styles.unreadDot} /> : null}
-            </View>
-          </View>
-          <Text style={styles.rowTime}>{timeStr}</Text>
-        </Pressable>
-      );
-    },
+    ({ item }: { item: ConversationWithLastMessage }) => (
+      <ConversationListRow item={item} onPress={onSelectConversation} />
+    ),
     [onSelectConversation]
   );
 
@@ -98,7 +75,7 @@ export default function ChatsScreen() {
           onPress={() => router.push({ pathname: "/me" } as never)}
           style={({ pressed }) => [styles.headerBtnLeft, pressed && styles.headerBtnPressed]}
         >
-          <Ionicons name="person-circle-outline" size={26} color="#FFFFFF" />
+          <Ionicons name="person-circle-outline" size={26} color="#000000" />
         </Pressable>
       ),
       headerRight: () => (
@@ -106,7 +83,7 @@ export default function ChatsScreen() {
           onPress={() => router.push({ pathname: "/user-search" })}
           style={({ pressed }) => [styles.headerBtn, pressed && styles.headerBtnPressed]}
         >
-          <Ionicons name="add" size={26} color="#FFFFFF" />
+          <Ionicons name="add" size={26} color="#000000" />
         </Pressable>
       ),
     };
@@ -136,6 +113,7 @@ export default function ChatsScreen() {
               data={conversations}
               keyExtractor={(c) => String(c.id)}
               renderItem={renderItem}
+              ListHeaderComponent={ListTopHairline}
               keyboardDismissMode="on-drag"
             />
           )}
@@ -146,39 +124,19 @@ export default function ChatsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#F5FAFF" },
+  safe: { flex: 1, backgroundColor: Theme.screenBackground },
   headerBtnLeft: { padding: 8, marginLeft: 4 },
   headerBtn: { padding: 8, marginRight: 4 },
   headerBtnPressed: { opacity: 0.8 },
 
-  list: { flex: 1 },
-  listContent: { paddingHorizontal: 12, paddingVertical: 12 },
-
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "rgba(11, 95, 255, 0.18)",
+  list: { flex: 1, backgroundColor: Theme.screenBackground },
+  listContent: { flexGrow: 1, paddingBottom: 8 },
+  listEdgeHairline: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Theme.hairlineBorder,
   },
-  rowPressed: { opacity: 0.8 },
-  rowMain: { flex: 1, minWidth: 0, marginRight: 12 },
-  titleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  rowTitle: { color: "#102A43", fontSize: 16, fontWeight: "600", flex: 1, minWidth: 0 },
-  unreadDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#22C55E",
-  },
-  rowPreview: { color: "#6B7A90", fontSize: 14, marginTop: 2 },
-  rowTime: { color: "#6B7A90", fontSize: 12 },
 
   empty: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24 },
-  emptyText: { color: "#102A43", fontSize: 18, fontWeight: "600" },
-  emptySubtext: { color: "#6B7A90", fontSize: 14, marginTop: 8 },
+  emptyText: { color: Theme.primaryText, fontSize: 18, fontWeight: "600" },
+  emptySubtext: { color: Theme.secondaryText, fontSize: 14, marginTop: 8 },
 });

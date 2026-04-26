@@ -13,6 +13,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { createInvite } from "../src/api/invites";
+import { Theme } from "../src/theme/colors";
 import type { LocalUser } from "../src/user/userStore";
 import { getLocalUser } from "../src/user/userStore";
 
@@ -51,10 +52,7 @@ export default function MeScreen() {
   const stackOptions = React.useMemo(() => {
     const androidExtras =
       Platform.OS === "android" && androidHeaderStatusBarHeight != null
-        ? {
-            statusBarTranslucent: true as const,
-            headerStatusBarHeight: androidHeaderStatusBarHeight,
-          }
+        ? { headerStatusBarHeight: androidHeaderStatusBarHeight }
         : {};
     if (checkingUser) {
       return {
@@ -108,7 +106,7 @@ export default function MeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#F5FAFF" },
+  safe: { flex: 1, backgroundColor: Theme.screenBackground },
   container: {
     flex: 1,
     paddingHorizontal: 12,
@@ -117,7 +115,7 @@ const styles = StyleSheet.create({
   inviteBtn: {
     height: 48,
     borderRadius: 14,
-    backgroundColor: "#0B5FFF",
+    backgroundColor: Theme.sendButton,
     justifyContent: "center",
     alignItems: "center",
   },
