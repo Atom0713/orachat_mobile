@@ -43,8 +43,7 @@ To learn more about developing your project with Expo, look at the following res
 ### 1. Generate native project
 
 ```bash
-cd /Users/artemsliusarenko/Developer/orachat_workspace/orachat_mobile
-EXPO_PUBLIC_ORACHAT_API_URL="https://your-api-host" npx expo prebuild --platform android --clean
+npx expo prebuild --platform android --clean
 ```
 
 ## Release
@@ -54,14 +53,18 @@ EXPO_PUBLIC_ORACHAT_API_URL="https://your-api-host" npx expo prebuild --platform
 #### 2. Change app version in the `android/app/build.gradle`
 #### 3. Build bundle
 ```bash
-cd /Users/artemsliusarenko/Developer/orachat_workspace/orachat_mobile/android
-EXPO_PUBLIC_ORACHAT_API_URL="<backend url>" ./gradlew bundleRelease
+cd /android && ./gradlew bundleRelease
 ```
 #### 4. Upload `.aab` file to Google Play console.
 #### Debugging
 ##### Upload '.jks' debugging
 ```bash
-keytool -list -v -keystore app/upload-keystore.jks
+keytool -list -v -keystore upload-keystore.jks
+```
+
+#### Common issues
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)
 ```
 
 ### IOS
