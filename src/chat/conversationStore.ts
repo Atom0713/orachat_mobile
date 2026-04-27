@@ -1,4 +1,4 @@
-import { getSharedDb } from "./inMemoryMessageStore";
+import { getSharedDb } from "./datastore";
 
 export type Conversation = {
   id: number;

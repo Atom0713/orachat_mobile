@@ -1,5 +1,5 @@
 import React from "react";
-import { inMemoryMessageStore } from "./inMemoryMessageStore";
+import { database } from "./datastore";
 import { pollInboxAsUnread } from "./transport";
 
 /**
@@ -16,7 +16,7 @@ export function useInboxPolling(senderId: string | null, intervalMs: number) {
         const newMessages = await pollInboxAsUnread({ senderId });
         if (cancelled) return;
         if (newMessages.length > 0) {
-          inMemoryMessageStore.append(newMessages);
+          database.append(newMessages);
         }
       } catch (err) {
         if (!cancelled) console.error("[chat] inbox poll failed", err);

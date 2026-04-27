@@ -3,20 +3,20 @@ import { useHeaderHeight } from "@react-navigation/elements";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  StatusBar as RNStatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    FlatList,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    StatusBar as RNStatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getOrCreateConversation, setConversationDisplayName } from "../src/chat/conversationStore";
-import { inMemoryMessageStore, useMessages } from "../src/chat/inMemoryMessageStore";
+import { database, useMessages } from "../src/chat/datastore";
 import { createPollingTransport } from "../src/chat/transport";
 import type { ChatMessage } from "../src/chat/types";
 import { useChatPolling } from "../src/chat/useChatPolling";
@@ -80,7 +80,7 @@ export default function Index() {
 
   React.useEffect(() => {
     if (conversationId == null || Number.isNaN(conversationId)) return;
-    inMemoryMessageStore.markConversationAsRead(conversationId);
+    database.markConversationAsRead(conversationId);
   }, [conversationId, filteredMessages.length]);
 
   React.useEffect(() => {

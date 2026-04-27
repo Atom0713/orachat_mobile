@@ -1,6 +1,6 @@
 import React from "react";
+import { database } from "./datastore";
 import type { ChatTransport } from "./types";
-import { inMemoryMessageStore } from "./inMemoryMessageStore";
 
 export function useChatPolling(transport: ChatTransport, intervalMs: number) {
   const lastSeenRef = React.useRef<string>("");
@@ -18,7 +18,7 @@ export function useChatPolling(transport: ChatTransport, intervalMs: number) {
             m.createdAt > max ? m.createdAt : max
           , newMessages[0].createdAt);
           lastSeenRef.current = newest > lastSeenRef.current ? newest : lastSeenRef.current;
-          inMemoryMessageStore.append(newMessages);
+          database.append(newMessages);
         }
       } catch (err) {
         if (!cancelled) console.error("[chat] poll failed", err);

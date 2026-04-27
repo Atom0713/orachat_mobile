@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Platform, StatusBar as RNStatusBar } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ensureMessagesHydrated } from "../src/chat/inMemoryMessageStore";
+import { ensureMessagesHydrated } from "../src/chat/datastore";
 import { bootstrapE2EForUser } from "../src/crypto/e2e";
 import { Theme } from "../src/theme/colors";
 import { getLocalUser } from "../src/user/userStore";

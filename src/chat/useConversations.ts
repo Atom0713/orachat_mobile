@@ -1,7 +1,7 @@
 import React from "react";
-import { getConversationsWithLastMessage } from "./conversationStore";
-import { useMessages } from "./inMemoryMessageStore";
 import type { ConversationWithLastMessage } from "./conversationStore";
+import { getConversationsWithLastMessage } from "./conversationStore";
+import { useMessages } from "./datastore";
 
 /**
  * Returns list of conversations with last message, sorted by last activity.

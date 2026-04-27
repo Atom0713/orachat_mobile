@@ -103,7 +103,7 @@ function persistMessages(toPersist: ChatMessage[]): void {
     .catch((err) => console.warn("[chat] SQLite persist failed", err));
 }
 
-export const inMemoryMessageStore = {
+export const database = {
   getSnapshot(): ChatMessage[] {
     return messages;
   },
@@ -150,8 +150,8 @@ export function getSharedDb(): Promise<SQLite.SQLiteDatabase> {
 
 export function useMessages(): ChatMessage[] {
   return useSyncExternalStore(
-    inMemoryMessageStore.subscribe,
-    inMemoryMessageStore.getSnapshot,
-    inMemoryMessageStore.getSnapshot
+    database.subscribe,
+    database.getSnapshot,
+    database.getSnapshot
   );
 }

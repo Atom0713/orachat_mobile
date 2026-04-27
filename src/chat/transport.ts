@@ -2,7 +2,7 @@ import { getBaseUrl } from "../api/config";
 import { getUserById } from "../api/users";
 import { decryptIncomingMessage, encryptOutgoingMessage } from "../crypto/e2e";
 import { getOrCreateConversation, setConversationDisplayName } from "./conversationStore";
-import { inMemoryMessageStore } from "./inMemoryMessageStore";
+import { database } from "./datastore";
 import type { ChatMessage, ChatTransport, PollOptions } from "./types";
 
 type OrachatApiMessage = {
@@ -106,10 +106,10 @@ export function createPollingTransport(config: OrachatTransportConfig): ChatTran
           conversationId,
           unread: false,
         };
-        inMemoryMessageStore.append([outgoing]);
+        database.append([outgoing]);
       } catch (err) {
         console.error("[chat] send request failed", err);
-        inMemoryMessageStore.append([
+        database.append([
           {
             id: `local-${Date.now()}`,
             text,

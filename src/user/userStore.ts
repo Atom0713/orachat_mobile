@@ -1,4 +1,4 @@
-import { getSharedDb } from "../chat/inMemoryMessageStore";
+import { getSharedDb } from "../chat/datastore";
 
 export type LocalUser = {
   id: string;
