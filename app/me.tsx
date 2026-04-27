@@ -29,7 +29,8 @@ export default function MeScreen() {
     try {
       const inv = await createInvite({ created_by: user.id });
       const expiresLabel = new Date(inv.expires_at).toLocaleString();
-      Alert.alert("Invite code", `${inv.code}\n\nExpires: ${expiresLabel}`);
+      const createdLabel = new Date(inv.created_at).toLocaleString();
+      Alert.alert("Invite code", `${inv.code}\n\nCreated: ${createdLabel}\n\nExpires: ${expiresLabel}`);
     } catch (e) {
       Alert.alert("Could not create invite", e instanceof Error ? e.message : "Unknown error");
     } finally {

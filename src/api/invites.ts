@@ -10,9 +10,9 @@ export type InviteResponse = {
   created_by: string;
   expires_at: string;
   used_by: string | null;
+  created_at: string;
 };
 
-/** POST /invites — create an invite code for the given user id. */
 export async function createInvite(body: CreateInviteRequest): Promise<InviteResponse> {
   const baseUrl = getBaseUrl();
   return postJson<InviteResponse>(`${baseUrl}/invites`, body);
