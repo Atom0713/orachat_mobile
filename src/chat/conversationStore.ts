@@ -13,13 +13,10 @@ export type ConversationWithLastMessage = Conversation & {
   hasUnread: boolean;
 };
 
-/**
- * Get existing conversation by peer_id or insert a new row and return it.
- */
 export async function getOrCreateConversation(peerId: string): Promise<Conversation> {
   const db = await getSharedDb();
   const existing = await db.getFirstAsync<Conversation>(
-    "SELECT id, peer_id, display_name, created_at FROM conversations WHERE peer_id = ? LIMIT 1",
+    "SELECT * FROM conversations WHERE peer_id = ? LIMIT 1",
     peerId
   );
   if (existing) return existing;
@@ -35,27 +32,16 @@ export async function getOrCreateConversation(peerId: string): Promise<Conversat
   return { id, peer_id: peerId, display_name: null, created_at };
 }
 
-/**
- * Update display_name for a conversation (by id or by peer_id).
- */
 export async function setConversationDisplayName(
-  conversationIdOrPeerId: number | string,
-  displayName: string | null
+  conersation_id: number,
+  displayName: string
 ): Promise<void> {
   const db = await getSharedDb();
-  if (typeof conversationIdOrPeerId === "number") {
-    await db.runAsync(
+  await db.runAsync(
       "UPDATE conversations SET display_name = ? WHERE id = ?",
       displayName,
-      conversationIdOrPeerId
+      conersation_id
     );
-  } else {
-    await db.runAsync(
-      "UPDATE conversations SET display_name = ? WHERE peer_id = ?",
-      displayName,
-      conversationIdOrPeerId
-    );
-  }
 }
 
 /**

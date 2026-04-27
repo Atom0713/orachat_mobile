@@ -143,9 +143,9 @@ export function createPollingTransport(config: OrachatTransportConfig): ChatTran
                 if (user) {
                   const name = user.display_name ?? user.username ?? peerId;
                   await setConversationDisplayName(conv.id, name);
-                }
+                } 
               } catch {
-                // ignore
+                // ignore: getUserById handles errors
               }
             }
             const plain = await decryptText(m.ciphertext, peerId, senderId, baseUrl);
@@ -167,6 +167,7 @@ export function createPollingTransport(config: OrachatTransportConfig): ChatTran
 
       if (received.length === 0) return [];
 
+      // TODO: Batch ack
       await Promise.allSettled(
         received.map((m) => fetch(`${baseUrl}/messages/ack/${encodeURIComponent(m.id)}`, { method: "POST" }))
       );

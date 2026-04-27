@@ -32,7 +32,8 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
       created_at TEXT NOT NULL,
       direction TEXT NOT NULL CHECK (direction IN ('in', 'out')),
       conversation_id INTEGER NOT NULL,
-      unread INTEGER NOT NULL DEFAULT 1
+      unread INTEGER NOT NULL DEFAULT 1,
+      sent INTEGER NOT NULL DEFAULT 0
     );
     CREATE INDEX IF NOT EXISTS messages_created_at ON messages(created_at);
     CREATE INDEX IF NOT EXISTS messages_conversation_id ON messages(conversation_id);
@@ -45,6 +46,8 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
       display_name TEXT,
       created_at TEXT NOT NULL
     );
+
+    CREATE INDEX IF NOT EXISTS conversation_id ON conversations(id);
   `);
   await database.runAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);
   
