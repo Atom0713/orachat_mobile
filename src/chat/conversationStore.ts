@@ -15,21 +15,20 @@ export type ConversationWithLastMessage = Conversation & {
 
 export async function getOrCreateConversation(peerId: string): Promise<Conversation> {
   const db = await getSharedDb();
-  const existing = await db.getFirstAsync<Conversation>(
-    "SELECT * FROM conversations WHERE peer_id = ? LIMIT 1",
-    peerId
-  );
-  if (existing) return existing;
   const created_at = new Date().toISOString();
-  const result = await db.runAsync(
-    "INSERT INTO conversations (peer_id, display_name, created_at) VALUES (?, ?, ?)",
+  await db.runAsync(
+    `INSERT INTO conversations (peer_id, display_name, created_at) VALUES (?, ?, ?)
+     ON CONFLICT(peer_id) DO NOTHING`,
     peerId,
     null,
     created_at
   );
-  const id = result.lastInsertRowId;
-  if (typeof id !== "number") throw new Error("[conversationStore] expected number id");
-  return { id, peer_id: peerId, display_name: null, created_at };
+  const row = await db.getFirstAsync<Conversation>(
+    "SELECT * FROM conversations WHERE peer_id = ? LIMIT 1",
+    peerId
+  );
+  if (!row) throw new Error("[conversationStore] missing row after upsert");
+  return row;
 }
 
 export async function setConversationDisplayName(
