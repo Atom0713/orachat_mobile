@@ -27,7 +27,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "dev.orachat.mobile",
-      "versionCode": 8
+      "versionCode": 9
     },
     "web": {
       "output": "static",
