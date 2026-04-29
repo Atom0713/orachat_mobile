@@ -174,14 +174,6 @@ export default function Index() {
           <Ionicons name="chevron-back" size={26} color="#000000" />
         </Pressable>
       ),
-      headerRight: () => (
-        <Pressable
-          onPress={() => router.push({ pathname: "/user-search" })}
-          style={({ pressed }) => [styles.headerBtn, pressed && styles.headerBtnPressed]}
-        >
-          <Ionicons name="add" size={26} color="#000000" />
-        </Pressable>
-      ),
       ...chatSurface,
     };
   }, [contentReady, headerTitle, router]);
@@ -219,19 +211,7 @@ export default function Index() {
                 <Text style={styles.androidHeaderTitle} numberOfLines={1}>
                   {headerTitle || "Chat"}
                 </Text>
-                <View style={[styles.androidHeaderSide, styles.androidHeaderSideEnd]}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Find users"
-                    onPress={() => router.push({ pathname: "/user-search" })}
-                    style={({ pressed }) => [
-                      styles.androidHeaderIconBtn,
-                      pressed && styles.headerBtnPressed,
-                    ]}
-                  >
-                    <Ionicons name="add" size={26} color="#000000" />
-                  </Pressable>
-                </View>
+                <View style={[styles.androidHeaderSide, styles.androidHeaderSideEnd]} />
               </View>
             </View>
           ) : null}
