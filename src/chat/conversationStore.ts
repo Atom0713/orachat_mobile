@@ -1,4 +1,4 @@
-import { getSharedDb } from "./datastore";
+import { evictConversationFromMessageCache, getSharedDb } from "./datastore";
 
 export type Conversation = {
   id: number;
@@ -42,6 +42,16 @@ export async function setConversationDisplayName(
       displayName,
       conersation_id
     );
+}
+
+/** Removes the conversation row and all its messages from SQLite, then syncs the in-memory message cache. */
+export async function deleteConversationAndMessages(conversationId: number): Promise<void> {
+  const db = await getSharedDb();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync("DELETE FROM messages WHERE conversation_id = ?", conversationId);
+    await db.runAsync("DELETE FROM conversations WHERE id = ?", conversationId);
+  });
+  evictConversationFromMessageCache(conversationId);
 }
 
 /**

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Theme } from "../theme/colors";
 import type { ConversationWithLastMessage } from "./conversationStore";
+import { ConversationListRowMenu } from "./ConversationListRowMenu";
 
 function formatChatListTime(timestamp: number | string | null) {
   if (timestamp == null) return "";
@@ -33,50 +34,55 @@ export function ConversationListRow({ item, onPress }: ConversationListRowProps)
   }, [item, onPress]);
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={handlePress}
-      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-    >
-      <View style={styles.body}>
-        <View style={styles.topLine}>
-          <Text
-            style={[styles.title, item.hasUnread && styles.titleUnread]}
-            numberOfLines={1}
-          >
-            {displayName}
-          </Text>
-          {timeStr.length > 0 ? (
-            <Text style={styles.time} numberOfLines={1}>
-              {timeStr}
+    <View style={styles.row}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={handlePress}
+        style={({ pressed }) => [styles.rowMain, pressed && styles.rowPressed]}
+      >
+        <View style={styles.body}>
+          <View style={styles.topLine}>
+            <Text
+              style={[styles.title, item.hasUnread && styles.titleUnread]}
+              numberOfLines={1}
+            >
+              {displayName}
             </Text>
-          ) : null}
+            {timeStr.length > 0 ? (
+              <Text style={styles.time} numberOfLines={1}>
+                {timeStr}
+              </Text>
+            ) : null}
+          </View>
+          <View style={styles.previewLine}>
+            <Text
+              style={[
+                styles.preview,
+                isPlaceholder && styles.previewPlaceholder,
+                item.hasUnread && !isPlaceholder && styles.previewUnread,
+              ]}
+              numberOfLines={1}
+            >
+              {preview}
+            </Text>
+            {item.hasUnread ? <View style={styles.unreadDot} /> : null}
+          </View>
         </View>
-        <View style={styles.previewLine}>
-          <Text
-            style={[
-              styles.preview,
-              isPlaceholder && styles.previewPlaceholder,
-              item.hasUnread && !isPlaceholder && styles.previewUnread,
-            ]}
-            numberOfLines={1}
-          >
-            {preview}
-          </Text>
-          {item.hasUnread ? <View style={styles.unreadDot} /> : null}
-        </View>
-      </View>
-    </Pressable>
+      </Pressable>
+      <ConversationListRowMenu conversationId={item.id} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
+    alignItems: "stretch",
     backgroundColor: Theme.screenBackground,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
+  rowMain: { flex: 1, minWidth: 0 },
   rowPressed: { backgroundColor: Theme.listRowPressed },
   body: { flex: 1, minWidth: 0 },
   topLine: {

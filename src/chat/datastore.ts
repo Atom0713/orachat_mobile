@@ -141,6 +141,13 @@ export const database = {
   },
 };
 
+/** Drop cached messages for a conversation after DB deletes; bumps snapshot so list hooks refetch. */
+export function evictConversationFromMessageCache(conversationId: number): void {
+  const filtered = messages.filter((m) => m.conversationId !== conversationId);
+  messages = filtered.length === messages.length ? messages.slice() : filtered;
+  emit();
+}
+
 /** Call early in app lifecycle so cache is hydrated from DB before first render if possible. */
 export function ensureMessagesHydrated(): Promise<void> {
   return hydrated;
