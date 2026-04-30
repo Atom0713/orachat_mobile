@@ -13,32 +13,6 @@ const DB_NAME = "orachat.db";
 let db: SQLite.SQLiteDatabase | null = null;
 const dbReady = initDbIfNeeded();
 
-/** Dedupe conversations per peer and enforce one row per peer_id (fixes parallel inbox poll races). */
-async function migrateConversationsUniquePeer(database: SQLite.SQLiteDatabase): Promise<void> {
-  const dupes = await database.getAllAsync<{ peer_id: string; keep_id: number }>(`
-    SELECT peer_id, MIN(id) AS keep_id
-    FROM conversations
-    GROUP BY peer_id
-    HAVING COUNT(*) > 1
-  `);
-  for (const d of dupes) {
-    await database.runAsync(
-      `UPDATE messages SET conversation_id = ?
-       WHERE conversation_id IN (SELECT id FROM conversations WHERE peer_id = ? AND id != ?)`,
-      d.keep_id,
-      d.peer_id,
-      d.keep_id
-    );
-    await database.runAsync(
-      "DELETE FROM conversations WHERE peer_id = ? AND id != ?",
-      d.peer_id,
-      d.keep_id
-    );
-  }
-  await database.execAsync(
-    "CREATE UNIQUE INDEX IF NOT EXISTS conversations_peer_id_unique ON conversations(peer_id);"
-  );
-}
 const hydrated = dbReady.then(() => hydrateCacheFromDb()).catch((err) => {
   console.warn("[chat] SQLite hydrate failed, using empty cache", err);
 });
@@ -75,14 +49,8 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
     );
 
     CREATE INDEX IF NOT EXISTS conversation_id ON conversations(id);
+    CREATE UNIQUE INDEX IF NOT EXISTS conversations_peer_id_unique ON conversations(peer_id);
   `);
-
-  const versionRow = await database.getFirstAsync<{ user_version: number }>("PRAGMA user_version");
-  const userVersion = versionRow?.user_version ?? 0;
-  if (userVersion < 8) {
-    await migrateConversationsUniquePeer(database);
-  }
-  await database.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION};`);
 
   await database.execAsync(`
     CREATE TABLE IF NOT EXISTS user (
@@ -91,6 +59,8 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
       display_name TEXT
     );
   `);
+
+  await database.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION};`);
   db = database;
   return database;
 }
