@@ -53,7 +53,7 @@ npx expo prebuild --platform android --clean
 #### 2. Change app version in the `android/app/build.gradle`
 #### 3. Build bundle
 ```bash
-cd /android && ./gradlew bundleRelease
+cd android/ && ./gradlew bundleRelease
 ```
 #### 4. Upload `.aab` file to Google Play console.
 #### Debugging
