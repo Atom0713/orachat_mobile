@@ -1,3 +1,5 @@
+import { clearPeerSession } from "../crypto/e2e";
+import { getLocalUser } from "../user/userStore";
 import { evictConversationFromMessageCache, getSharedDb } from "./datastore";
 
 export type Conversation = {
@@ -46,11 +48,19 @@ export async function setConversationDisplayName(
 /** Removes the conversation row and all its messages from SQLite, then syncs the in-memory message cache. */
 export async function deleteConversationAndMessages(conversationId: number): Promise<void> {
   const db = await getSharedDb();
+  const peerRow = await db.getFirstAsync<{ peer_id: string }>(
+    "SELECT peer_id FROM conversations WHERE id = ?",
+    conversationId
+  );
   await db.withTransactionAsync(async () => {
     await db.runAsync("DELETE FROM messages WHERE conversation_id = ?", conversationId);
     await db.runAsync("DELETE FROM conversations WHERE id = ?", conversationId);
   });
   evictConversationFromMessageCache(conversationId);
+  const local = await getLocalUser();
+  if (local && peerRow) {
+    await clearPeerSession(local.id, peerRow.peer_id);
+  }
 }
 
 /**

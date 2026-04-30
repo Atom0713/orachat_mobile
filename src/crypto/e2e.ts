@@ -22,8 +22,6 @@ const SESSIONS_KEY = "orachat_e2e_sessions";
 
 type PeerSession = {
   rootKeyB64: string;
-  sendN: number;
-  lastRecvN: number;
 };
 
 type SessionsMap = Record<string, PeerSession>;
@@ -41,8 +39,8 @@ function deriveRoot(sharedSecret: Uint8Array): Uint8Array {
   return hkdf(sha256, sharedSecret, undefined, ROOT_INFO, 32);
 }
 
-function deriveMessageKey(rootKey: Uint8Array, senderId: string, n: number): Uint8Array {
-  const info = new TextEncoder().encode(`orachat-msg|${senderId}|${n}`);
+function deriveMessageKey(rootKey: Uint8Array, senderId: string): Uint8Array {
+  const info = new TextEncoder().encode(`orachat-msg|${senderId}`);
   return hkdf(sha256, rootKey, undefined, info, 32);
 }
 
@@ -139,31 +137,24 @@ async function getOrCreateSession(
   const root = deriveRoot(shared);
   const session: PeerSession = {
     rootKeyB64: bytesToBase64(root),
-    sendN: 0,
-    lastRecvN: 0,
   };
   sessions[key] = session;
   await saveSessions(sessions);
   return session;
 }
 
-async function updateSession(
-  localUserId: string,
-  peerId: string,
-  patch: Partial<PeerSession>
-): Promise<void> {
+/** Drop stored 1:1 session for this local account and peer (e.g. after deleting the chat). */
+export async function clearPeerSession(localUserId: string, peerId: string): Promise<void> {
   const key = sessionStorageKey(localUserId, peerId);
   const sessions = await loadSessions();
-  const cur = sessions[key];
-  if (!cur) return;
-  sessions[key] = { ...cur, ...patch };
+  if (!sessions[key]) return;
+  delete sessions[key];
   await saveSessions(sessions);
 }
 
 type Envelope = {
   v: number;
   sid: string;
-  n: number;
   nonce: string;
   ct: string;
 };
@@ -176,8 +167,7 @@ export async function encryptOutgoingMessage(
 ): Promise<string> {
   const session = await getOrCreateSession(localUserId, peerId, baseUrl);
   const rootKey = base64ToBytes(session.rootKeyB64);
-  const n = session.sendN + 1;
-  const msgKey = deriveMessageKey(rootKey, localUserId, n);
+  const msgKey = deriveMessageKey(rootKey, localUserId);
   const nonce = await randomBytes(12);
   const aes = gcm(msgKey, nonce);
   const ct = aes.encrypt(utf8Encode(plaintext));
@@ -185,12 +175,9 @@ export async function encryptOutgoingMessage(
   const envelope: Envelope = {
     v: E2E_VERSION,
     sid: localUserId,
-    n,
     nonce: bytesToBase64(nonce),
     ct: bytesToBase64(ct),
   };
-
-  await updateSession(localUserId, peerId, { sendN: n });
 
   return bytesToBase64(utf8Encode(JSON.stringify(envelope)));
 }
@@ -215,18 +202,14 @@ export async function decryptIncomingMessage(
     return ciphertextField;
   }
 
-  if (envelope.v !== E2E_VERSION || !envelope.sid || typeof envelope.n !== "number") {
+  if (envelope.v !== E2E_VERSION || !envelope.sid) {
     return ciphertextField;
   }
 
   const session = await getOrCreateSession(localUserId, senderId, baseUrl);
 
-  if (envelope.n <= session.lastRecvN) {
-    throw new Error("E2E: duplicate or replayed message");
-  }
-
   const rootKey = base64ToBytes(session.rootKeyB64);
-  const msgKey = deriveMessageKey(rootKey, envelope.sid, envelope.n);
+  const msgKey = deriveMessageKey(rootKey, envelope.sid);
   const nonce = base64ToBytes(envelope.nonce);
   const ct = base64ToBytes(envelope.ct);
   const aes = gcm(msgKey, nonce);
@@ -236,8 +219,6 @@ export async function decryptIncomingMessage(
   } catch {
     throw new Error("E2E: decryption failed (wrong key or corrupted message)");
   }
-
-  await updateSession(localUserId, senderId, { lastRecvN: envelope.n });
 
   return utf8Decode(plain);
 }
