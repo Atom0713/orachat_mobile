@@ -17,6 +17,7 @@
       "deploymentTarget": "18.0"
     },
     "android": {
+      "allowBackup": false,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
