@@ -28,6 +28,11 @@ type PeerSession = {
 
 type SessionsMap = Record<string, PeerSession>;
 
+/** Stable storage key for a 1:1 E2E session (local account × peer). */
+function sessionStorageKey(localUserId: string, peerId: string): string {
+  return `${localUserId}\x1f${peerId}`;
+}
+
 async function randomBytes(n: number): Promise<Uint8Array> {
   return await Crypto.getRandomBytesAsync(n);
 }
@@ -115,8 +120,9 @@ async function getOrCreateSession(
   peerId: string,
   baseUrl?: string
 ): Promise<PeerSession> {
+  const key = sessionStorageKey(localUserId, peerId);
   const sessions = await loadSessions();
-  if (sessions[peerId]) return sessions[peerId]!;
+  if (sessions[key]) return sessions[key]!;
 
   const bundle = await getPublicKeyBundle(peerId, baseUrl);
   if (!bundle) {
@@ -136,16 +142,21 @@ async function getOrCreateSession(
     sendN: 0,
     lastRecvN: 0,
   };
-  sessions[peerId] = session;
+  sessions[key] = session;
   await saveSessions(sessions);
   return session;
 }
 
-async function updateSession(peerId: string, patch: Partial<PeerSession>): Promise<void> {
+async function updateSession(
+  localUserId: string,
+  peerId: string,
+  patch: Partial<PeerSession>
+): Promise<void> {
+  const key = sessionStorageKey(localUserId, peerId);
   const sessions = await loadSessions();
-  const cur = sessions[peerId];
+  const cur = sessions[key];
   if (!cur) return;
-  sessions[peerId] = { ...cur, ...patch };
+  sessions[key] = { ...cur, ...patch };
   await saveSessions(sessions);
 }
 
@@ -179,7 +190,7 @@ export async function encryptOutgoingMessage(
     ct: bytesToBase64(ct),
   };
 
-  await updateSession(peerId, { sendN: n });
+  await updateSession(localUserId, peerId, { sendN: n });
 
   return bytesToBase64(utf8Encode(JSON.stringify(envelope)));
 }
@@ -226,7 +237,7 @@ export async function decryptIncomingMessage(
     throw new Error("E2E: decryption failed (wrong key or corrupted message)");
   }
 
-  await updateSession(senderId, { lastRecvN: envelope.n });
+  await updateSession(localUserId, senderId, { lastRecvN: envelope.n });
 
   return utf8Decode(plain);
 }
