@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ensureMessagesHydrated } from "../src/chat/datastore";
 import { bootstrapE2EForUser } from "../src/crypto/e2e";
+import { syncPushTokenWithBackend } from "../src/push/syncPushTokenWithBackend";
 import { Theme } from "../src/theme/colors";
 import { getLocalUser } from "../src/user/userStore";
 
@@ -30,6 +31,9 @@ export default function RootLayout() {
           } catch (e) {
             console.warn("[e2e] bootstrap failed", e);
           }
+          void syncPushTokenWithBackend(user.id).catch((e) =>
+            console.warn("[push] sync failed", e)
+          );
         }
         if (!cancelled) {
           resolved.current = true;

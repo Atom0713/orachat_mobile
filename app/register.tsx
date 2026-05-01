@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { registerUser } from "../src/api/users";
 import { bootstrapE2EForUser } from "../src/crypto/e2e";
+import { syncPushTokenWithBackend } from "../src/push/syncPushTokenWithBackend";
 import { Theme } from "../src/theme/colors";
 import { getLocalUser, setLocalUser } from "../src/user/userStore";
 
@@ -82,6 +83,9 @@ export default function RegisterScreen() {
         keyWarning = e instanceof Error ? e.message : "Key publish failed";
         Alert.alert("Key publish failed", keyWarning);
       }
+      void syncPushTokenWithBackend(res.id).catch((e) =>
+        console.warn("[push] sync failed", e)
+      );
       router.replace("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
