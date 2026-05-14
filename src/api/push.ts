@@ -1,5 +1,5 @@
 import { getBaseUrl } from "./config";
-import { postJson } from "./postJson";
+import { putJson } from "./putJson";
 
 export type DevicePushTokenPayload = {
   data: string;
@@ -11,7 +11,7 @@ export async function registerDevicePushToken(
   token: DevicePushTokenPayload
 ): Promise<void> {
   const baseUrl = getBaseUrl();
-  await postJson<unknown>(`${baseUrl}/push/device-token`, {
+  await putJson<unknown>(`${baseUrl}/push/device-token`, {
     user_id: userId,
     data: token.data,
     type: token.type,
