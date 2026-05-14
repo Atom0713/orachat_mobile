@@ -50,3 +50,6 @@ app-example
 
 # Env vars
 .env
+
+# firebase
+services.json
