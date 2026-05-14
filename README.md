@@ -4,13 +4,13 @@ Mobile (IOS & Android) orachat app. Made for friends, family, portfolio, and per
 
 ## Development
 
-1. Install dependencies
+###  Install dependencies
 
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+```
 
-2. Start the app
+### Start the app
 
 For IOS
 ```bash
@@ -21,6 +21,12 @@ For Android
 ```bash
 EXPO_PUBLIC_ORACHAT_API_URL="http://10.0.2.2:8000" npx expo start -c
 ```
+### Build and run the native apps locally
+
+```
+npx expo run:ios/android
+```
+
 
 In the output, you'll find options to open the app in a
 
@@ -39,41 +45,37 @@ To learn more about developing your project with Expo, look at the following res
 - [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
 
 
-## Build
-### 1. Generate native project
+## Release process
+
+### Android Bundle build
+
+#### 1. Generate android project
 
 ```bash
 npx expo prebuild --platform android --clean
 ```
+**NOTE**: re-generates `android` directory which will require additional setup in `android/app/build.gradle`.
 
-## Release
-
-### Google Play
-#### 1. Change app version in the `app.json`
-#### 2. Change app version in the `android/app/build.gradle`
-#### 3. Build bundle
+#### 2. Change app version in the `app.json`
+#### 3. Change app version in the `android/app/build.gradle`
+#### 4. Build bundle
 ```bash
 cd android/ && ./gradlew bundleRelease
 ```
-#### 4. Upload `.aab` file to Google Play console.
-#### Debugging
-##### Upload '.jks' debugging
-```bash
-keytool -list -v -keystore upload-keystore.jks
-```
+#### 5. Upload `.aab` file to Google Play console.
 
-#### Common issues
+### Common issues
 ```bash
 export JAVA_HOME=$(/usr/libexec/java_home -v 21)
 ```
 
-### IOS
+### IOS Bundle build
 
-#### 1. Prebuild
+#### 1. Generate ios project
 ```bash
 npx expo prebuild --platform ios --clean
 ```
-#### 2.  ```cd ios && pod install && cd ..```
+#### 2. ```cd ios && pod install && cd ..```
 #### 3. Open project in XCode
 ```bash
 open ios/*.xcworkspace
@@ -91,3 +93,9 @@ open ios/*.xcworkspace
 - Distribute App: Click the Distribute App button.
 - Method: Select App Store Connect and then Upload.
 - Final Steps: Follow the prompts to upload the build to App Store Connect. Once uploaded, you can manage the build for TestFlight or final App Store review through your App Store Connect dashboard
+
+### Debugging
+#### Upload '.jks' debugging
+```bash
+keytool -list -v -keystore upload-keystore.jks
+```
