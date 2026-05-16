@@ -25,7 +25,7 @@ async function initDbIfNeeded(): Promise<SQLite.SQLiteDatabase> {
   if (db) return db;
   const database = await SQLite.openDatabaseAsync(DB_NAME);
   await database.execAsync("PRAGMA journal_mode = WAL;");
-  
+
   await database.execAsync(`
     CREATE TABLE IF NOT EXISTS messages (
       id TEXT PRIMARY KEY NOT NULL,
