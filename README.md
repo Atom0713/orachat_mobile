@@ -75,21 +75,24 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 21)
 ```bash
 npx expo prebuild --platform ios --clean
 ```
-#### 2. ```cd ios && pod install && cd ..```
-#### 3. Open project in XCode
+```bash
+cd ios && pod install && cd ..
+```
+
+#### 2. Open project in XCode
 ```bash
 open ios/*.xcworkspace
 ```
-#### 4. Signing & Capabilities
+#### 3. Signing & Capabilities
 - Ensure a Team is selected
 - Check "Automatically manage signing"
 
-#### 5. Build and Archive
+#### 4. Build and Archive
 - Set Destination: In the top menu bar, set the target device to Any iOS Device (arm64).
 - Scheme: Go to Product > Scheme > Edit Scheme and ensure the Archive > Build Configuration is set to Release.
 - Archive: Go to Product > Archive. Xcode will compile your app and bundle the JavaScript locally.
 
-#### 6. Distribute to App Store/TestFlight 
+#### 5. Distribute to App Store/TestFlight 
 - Distribute App: Click the Distribute App button.
 - Method: Select App Store Connect and then Upload.
 - Final Steps: Follow the prompts to upload the build to App Store Connect. Once uploaded, you can manage the build for TestFlight or final App Store review through your App Store Connect dashboard
