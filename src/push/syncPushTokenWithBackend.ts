@@ -32,3 +32,23 @@ export async function syncPushTokenWithBackend(userId: string): Promise<void> {
     console.error('syncPushTokenWithBackend error:', err);
   }
 }
+
+export function startPushTokenRefreshListener(userId: string): () => void {
+  try {
+    const messaging = require('@react-native-firebase/messaging')?.default ?? require('@react-native-firebase/messaging');
+    if (!messaging) return () => { };
+
+    const unsubscribe = messaging().onTokenRefresh(async (newToken: string) => {
+      try {
+        await registerDevicePushToken(userId, newToken);
+      } catch (e) {
+        console.error('failed to register refreshed token:', e);
+      }
+    });
+
+    return unsubscribe;
+  } catch (err) {
+    console.error('startPushTokenRefreshListener error:', err);
+    return () => { };
+  }
+}

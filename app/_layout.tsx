@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ensureMessagesHydrated } from "../src/chat/datastore";
 import { bootstrapE2EForUser } from "../src/crypto/e2e";
-import { syncPushTokenWithBackend } from "../src/push/syncPushTokenWithBackend";
+import { startPushTokenRefreshListener, syncPushTokenWithBackend } from "../src/push/syncPushTokenWithBackend";
 import { Theme } from "../src/theme/colors";
 import { getLocalUser } from "../src/user/userStore";
 
@@ -62,6 +62,23 @@ export default function RootLayout() {
     }
   }, [hasUser, router]);
 
+  useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+    let mounted = true;
+    if (!hasUser) return () => { };
+
+    (async () => {
+      const user = await getLocalUser();
+      if (!mounted || !user) return;
+      unsubscribe = startPushTokenRefreshListener(user.id);
+    })();
+
+    return () => {
+      mounted = false;
+      if (unsubscribe) unsubscribe();
+    };
+  }, [hasUser]);
+
   // Do not render the Stack until auth is resolved. Rendering it before we know
   // the target route causes Fabric to mount screens into the stack before the
   // correct route is ready, producing "ScreenStackFragment added into a
@@ -90,11 +107,11 @@ export default function RootLayout() {
           // Use <StatusBar /> above instead. Android keeps native stack status bar.
           ...(Platform.OS === "android"
             ? {
-                statusBarStyle: "dark",
-                ...(androidHeaderStatusBarHeight != null
-                  ? { headerStatusBarHeight: androidHeaderStatusBarHeight }
-                  : {}),
-              }
+              statusBarStyle: "dark",
+              ...(androidHeaderStatusBarHeight != null
+                ? { headerStatusBarHeight: androidHeaderStatusBarHeight }
+                : {}),
+            }
             : {}),
         }}
       />
