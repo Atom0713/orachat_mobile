@@ -71,12 +71,11 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 21)
 
 ### IOS Bundle build
 
-#### 1. Generate ios project
+#### 1. Generate ios project (local helper)
+Run the helper script which re-applies a required Podfile change and runs `pod install`:
+
 ```bash
-npx expo prebuild --platform ios --clean
-```
-```bash
-cd ios && pod install && cd ..
+npm run ios:prebuild
 ```
 
 #### 2. Open project in XCode

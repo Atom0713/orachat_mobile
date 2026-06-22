@@ -7,6 +7,7 @@
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
+    "ios:prebuild": "bash ./scripts/ios_prebuild.sh",
     "web": "expo start --web",
     "lint": "expo lint"
   },
