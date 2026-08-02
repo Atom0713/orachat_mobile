@@ -2,7 +2,7 @@
   "expo": {
     "name": "orachat_mobile",
     "slug": "orachat_mobile",
-    "version": "0.0.14",
+    "version": "0.0.15",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "orachatmobile",
