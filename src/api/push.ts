@@ -10,4 +10,5 @@ export async function registerDevicePushToken(
     user_id: userId,
     data: token,
   });
+  console.error('saved push token to backend for user', userId, 'token', token);
 }
